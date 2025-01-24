@@ -17,15 +17,20 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerInterceptor } from './core/requests-logger/requests-logger.interceptor';
 import { AddXClientServiceNameInterceptor } from './core/add-xclient-service-name/add-xclient-service-name.interceptor';
 import { MyHttpService } from "./core/my-http-client-service/my-http.service";
+import { ChatController } from './controllers/chat.controller';
+import { ChatService } from './services/chat.service';
+import { AskLLmService } from './api-services/ask-llm/ask-llm.service';
 
 @Module({
   imports: [MongodbModule, HttpModule, RabbitMqConfigModule],
-  controllers: [AppController],
+  controllers: [AppController, ChatController],
   providers: [
     AppService,
     AuthApiService,
     JwtStrategy,
     MyHttpService,
+    ChatService,
+    AskLLmService,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
