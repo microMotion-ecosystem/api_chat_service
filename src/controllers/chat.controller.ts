@@ -4,6 +4,7 @@ import {ApiBearerAuth, ApiOperation, ApiResponse} from "@nestjs/swagger";
 import {JwtAuthGuard} from "../core/jwt-auth-guard/jwt-auth.guard";
 import { ResponseDto } from '../dtos/response.dto';
 import { ChatService } from 'src/services/chat.service';
+import { QueryModelDto } from 'src/dtos/query-model-dto';
 
 @Controller('chat')
 export class ChatController {
@@ -11,7 +12,8 @@ export class ChatController {
         private readonly chatService: ChatService,
     ) { }
     @Post('llm/:llm_type')
-    async sendMessageToLLm(@Param('llm_type') llmType: string, @Body() body: {message: string}) {
+    async sendMessageToLLm(@Param() llm_type: QueryModelDto, @Body() body: {message: string}) {
+        const llmType = llm_type.llm_type;
         try{
             console.log('llmType', llmType);
             console.log('message', body.message);
