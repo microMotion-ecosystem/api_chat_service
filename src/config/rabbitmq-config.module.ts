@@ -36,8 +36,8 @@ function registerMicroservice(
       * then you can emit event like this:
       * this.client.emit<any>('event-name', 'ay haga');
       */
-      // registerMicroservice('AUTH_MQ_SERVICE','user_profile_service.to.auth_service'),
-      // registerMicroservice('RABBITMQ_SERVICE2', 'to.logger_service'),
+      registerMicroservice('LLM_QUEUE_SERVICE','llm_microMotion_queue'),
+      // registerMicroservice('RABBITMQ_SERVICE2', 'fuse8'),
     ]),
   ],
   exports: [ClientsModule],
@@ -66,7 +66,7 @@ export class RabbitMqConfigModule {
      * async handleEventName(data: any) {}
      * */
     // listenToMicroservice('fuse1');
-    // listenToMicroservice('auth_service.to.user_profile_service');
+    listenToMicroservice('chat_microMotion_queue');
     await app.startAllMicroservices();
   }
 }

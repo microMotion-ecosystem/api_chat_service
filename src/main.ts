@@ -11,6 +11,7 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   SwaggerConfig.setup(app);
+  app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
