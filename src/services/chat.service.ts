@@ -8,9 +8,14 @@ export class ChatService {
         private readonly llmService: AskLLmService
     ) {}
 
-    async sendMessageToLLm(llmType: string, message: string) {
+    async sendMessageToLLm(llmType: string, messages: any, sessionId?:string) {
         try{
-            const response = await this.llmService.sendToLLM({llmType, message});
+            const body = {
+                messages,
+                llmType,
+                sessionId
+            }
+            const response = await this.llmService.sendToLLM(body);
             if (response.success == true ) {
                 return response.data;
             } else {

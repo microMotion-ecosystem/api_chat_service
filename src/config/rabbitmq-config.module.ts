@@ -37,6 +37,7 @@ function registerMicroservice(
       * this.client.emit<any>('event-name', 'ay haga');
       */
       registerMicroservice('LLM_QUEUE_SERVICE','llm_microMotion_queue'),
+      registerMicroservice('CHECK_USER_SERVICE', 'fuse_auth_queue'),
       // registerMicroservice('RABBITMQ_SERVICE2', 'fuse8'),
     ]),
   ],
