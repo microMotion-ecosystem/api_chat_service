@@ -10,6 +10,10 @@ export class AskLLmService {
     ) {}
 
     async sendToLLM(data: any) {
-        return await this.llmQueue.send('ask-llm', data).toPromise();
+        try{
+            return await this.llmQueue.send('ask-llm', data).toPromise();
+        }catch(e){
+            throw(e);
+        }
     }
 }

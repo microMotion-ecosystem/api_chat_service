@@ -20,10 +20,31 @@ import { MyHttpService } from "./core/my-http-client-service/my-http.service";
 import { ChatController } from './controllers/chat.controller';
 import { ChatService } from './services/chat.service';
 import { AskLLmService } from './api-services/ask-llm/ask-llm.service';
-
+import { MongooseModule } from '@nestjs/mongoose';
+import { Message, MessageSchema } from './models/message.model';
+import { Session, SessionSchema } from './models/session.model';
+import { MessageController } from './controllers/message.controller';
+import { MessageService } from './services/message.service';
+import { SessionController } from './controllers/session.controller';
+import { SessionService } from './services/session.service';
+import { ApiService } from './core/Api/api.service';
+import { CheckUserService } from './api-services/check-user/check-user.service';
+import { GateWay } from './services/gateway.events';
 @Module({
-  imports: [MongodbModule, HttpModule, RabbitMqConfigModule],
-  controllers: [AppController, ChatController],
+  imports: [MongodbModule,
+    HttpModule,
+    RabbitMqConfigModule,
+    MongooseModule.forFeature([
+      { name: Message.name, schema: MessageSchema },
+      { name: Session.name, schema: SessionSchema}
+    ]),
+  ],
+  controllers: [
+    AppController,
+    ChatController,
+    MessageController,
+    SessionController
+  ],
   providers: [
     AppService,
     AuthApiService,
@@ -31,6 +52,11 @@ import { AskLLmService } from './api-services/ask-llm/ask-llm.service';
     MyHttpService,
     ChatService,
     AskLLmService,
+    MessageService,
+    SessionService,
+    ApiService,
+    CheckUserService,
+    GateWay,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
