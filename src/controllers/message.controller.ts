@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import {ApiBearerAuth, ApiOperation, ApiResponse} from "@nestjs/swagger";
 import {JwtAuthGuard} from "../core/jwt-auth-guard/jwt-auth.guard";
 import { ResponseDto } from '../dtos/response.dto';
@@ -65,7 +65,7 @@ export class MessageController {
         }
     }
 
-    @Patch(':id')
+    @Put(':id')
     @UseGuards(JwtAuthGuard)
     async updateMessage(@Param('id') id: string, @Body() data: UpdateMessageBodyDto, @Request() req: any) {
         try {
