@@ -30,10 +30,23 @@ import { SessionService } from './services/session.service';
 import { ApiService } from './core/Api/api.service';
 import { CheckUserService } from './api-services/check-user/check-user.service';
 import { GateWay } from './services/gateway.events';
+import { BullModule } from '@nestjs/bull';
+import { BullSevice } from './services/bull.service';
+import { MessageProcessor } from './controllers/message.processor';
 @Module({
   imports: [MongodbModule,
     HttpModule,
     RabbitMqConfigModule,
+    BullModule.forRoot({
+      // Configure Redis connection
+      redis: {
+        host: process.env.Redis_Host,
+        port: parseInt(process.env.Redis_Host_Port),
+      },
+    }),
+    BullModule.registerQueue({
+      name: 'messageQueue',
+    }),
     MongooseModule.forFeature([
       { name: Message.name, schema: MessageSchema },
       { name: Session.name, schema: SessionSchema}
@@ -43,7 +56,7 @@ import { GateWay } from './services/gateway.events';
     AppController,
     ChatController,
     MessageController,
-    SessionController
+    SessionController,
   ],
   providers: [
     AppService,
@@ -57,6 +70,8 @@ import { GateWay } from './services/gateway.events';
     ApiService,
     CheckUserService,
     GateWay,
+    BullSevice,
+    MessageProcessor,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
