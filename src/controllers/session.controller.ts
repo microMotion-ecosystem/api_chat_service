@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import {ApiBearerAuth, ApiOperation, ApiResponse} from "@nestjs/swagger";
 import {JwtAuthGuard} from "../core/jwt-auth-guard/jwt-auth.guard";
 import { ResponseDto } from '../dtos/response.dto';
@@ -71,6 +71,37 @@ export class SessionController {
         }
     }
 
+    @Get('myParticipatedSessions')
+    @UseGuards(JwtAuthGuard)
+    async getUserParticipatedSessions(
+        @Request() req: any
+    ) {
+        try{
+
+            const userId = req.user.userId;
+            const sessions = await this.sessionService.getparticipatedSessions(userId);
+            return ResponseDto.ok(sessions);
+        } catch(err){
+            return ResponseDto.throwBadRequest(err.message, err);
+        }
+    }
+
+    @Get('sessionParticipants/:sessionId')
+    @UseGuards(JwtAuthGuard)
+    async getSessionParticipants(
+        @Param('sessionId') sessionId:string,
+        @Request() req: any
+    ) {
+        try{
+
+            const userId = req.user.userId;
+            const participants = await this.sessionService.getSessionParticipants(sessionId, userId);
+            return ResponseDto.ok(participants);
+        } catch(err){
+            return ResponseDto.throwBadRequest(err.message, err);
+        }
+    }
+
     @Get(':id')
     @UseGuards(JwtAuthGuard)
     async getSession(
@@ -80,6 +111,34 @@ export class SessionController {
         try{
             const userId = req.user.userId;
             const session= await this.sessionService.getSession(id, userId);
+            return ResponseDto.ok(session);
+        } catch(err){
+            return ResponseDto.throwBadRequest(err.message, err);
+        }
+    }
+
+    @Post('link/:id')
+    @UseGuards(JwtAuthGuard)
+    async getShareLink(
+        @Param('id') id:string,
+        @Request() req: any
+    ) {
+        try{
+            const userId = req.user.userId;
+            const session= await this.sessionService.getShareLink(id, userId);
+            return ResponseDto.ok(session);
+        } catch(err){
+            return ResponseDto.throwBadRequest(err.message, err);
+        }
+    }
+
+    // no auth required to get session with link
+    @Get('share/:code')
+    async getSessionWithLink(
+        @Param('code') code:string,
+    ) {
+        try{
+            const session= await this.sessionService.getSessionWithLink(code);
             return ResponseDto.ok(session);
         } catch(err){
             return ResponseDto.throwBadRequest(err.message, err);
@@ -99,16 +158,16 @@ export class SessionController {
         }
     }
 
-    @Patch('addParticipant/:sessionId')
+    @Put('addParticipant/:sessionId')
     @UseGuards(JwtAuthGuard)
     async addParticipant(
         @Param('sessionId') sessionId:string, 
-        @Body() body: UpdateSessionAddParticipantDto,
+        @Body() body: {email:string},
         @Request() req: any) 
         {
             try{
                 const userId = req.user.userId;
-                const response = await this.sessionService.addParticipant(sessionId, userId, body.participantId);
+                const response = await this.sessionService.addParticipantWithEmail(sessionId, userId, body.email);
                 return  ResponseDto.ok(response);
             }catch(err){
                 return ResponseDto.throwBadRequest(err.message, err);
@@ -118,12 +177,12 @@ export class SessionController {
     @UseGuards(JwtAuthGuard)
     async removePartitpant(
         @Param('sessionId') sessionId:string, 
-        @Body() body: UpdateSessionAddParticipantDto,
+        @Body() body: {email:string},
         @Request() req: any) 
         {
             try{
                 const userId = req.user.userId;
-                const response = await this.sessionService.removeParticipant(sessionId, userId, body.participantId);
+                const response = await this.sessionService.removeParticipantWithEmail(sessionId, userId, body.email);
                 return  ResponseDto.ok(response);
             }catch(err){
                 return ResponseDto.throwBadRequest(err.message, err);

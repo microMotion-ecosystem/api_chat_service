@@ -10,6 +10,8 @@ import { QuerySessionDto } from 'src/dtos/query-session.dto';
 import { UpdateSessionRenameDto } from 'src/dtos/update-session.dto';
 import { SessionDocument } from 'src/models/session.model';
 import { GateWay } from './gateway.events';
+import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class SessionService {
@@ -90,12 +92,71 @@ export class SessionService {
                 },
             ];
         }
+        // get sessions that user participated.
+        async getparticipatedSessions(userId:string){
+            const userObj = new Types.ObjectId(userId)
+            const sessions = await this.sessionModel.find({isDelete: false, participants: userObj})
+            if(sessions.length === 0){
+                throw new NotFoundException('you did,t participate to any session')
+            }
+            return sessions;
+        }
         async getSession(id:string, userId: string,){
             const filter = { isDelete:false, _id:id }
             const session = await this.sessionModel.findOne(filter);
+            if(!session){
+                return new NotFoundException('session not found')
+            }
             const userIdObj = new Types.ObjectId(userId);
             if (session.participants.includes(userIdObj) || session.createdBy.toString() === userId) {
                 return session;
+            }
+            throw new UnauthorizedException('user not authorized')
+        }
+
+        async getShareLink(id, userId){
+            const session = await this.sessionModel.findById(id);
+            if(!session) {
+                throw new NotFoundException('session not found')
+            }
+            // only creator can share
+            if (session.createdBy.toString() !== userId) {
+                throw new UnauthorizedException('user notauthorized')
+            }
+            const code = String(Math.floor(1000 + Math.random() * 8000));
+            const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+            session.metadata = { ...session.metadata, shareCode: hashedCode };
+            await session.save();
+            const shareLink = `http://localhost:5512/api/v1/session/share/${code}`;
+            return shareLink;
+
+        }
+
+        async getSessionWithLink(code:string) {
+            const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+            const session = await this.sessionModel.findOne({ 'metadata.shareCode': hashedCode });
+            if(!session) {
+                throw new NotFoundException('session not found')
+            }
+            return session;
+        }
+        async getSessionParticipants(id:string, userId: string){
+            const filter = { isDelete:false, _id:id }
+            const session = await this.sessionModel.findOne(filter);
+            if(!session){
+                return new NotFoundException('session not found')
+            }
+            const participants = [];
+            const userIdObj = new Types.ObjectId(userId);
+            if (session.participants.includes(userIdObj) || session.createdBy.toString() === userId) {
+                for (const  participant of session.participants ) {
+                    const user = await this.checkUserService.checkUser(participant.toString());
+                    if (user.success){
+                         participants.push(user);
+                    }
+                }
+                return participants;
             }
             throw new UnauthorizedException('user not authorized')
     }
@@ -104,14 +165,14 @@ export class SessionService {
         try {
             data = { ...data, createdBy: user.userId };
             const session = await this.sessionModel.create(data);
-            (this.gateway.server as any).emit('session-created', {data: session});
+            // (this.gateway.server as any).emit('session-created', {data: session});
             return session;
         } catch(err) {
             throw new InternalServerErrorException('Failed to create session');
         }
 
     }
-    async addParticipant(sessionId: string, userId:string, participantId: string) {
+    async addParticipantWithEmail(sessionId: string, userId:string, email: string) {
         const session = await this.sessionModel.findById(sessionId);
         if (!session) {
             throw new Error('Session not found');
@@ -119,15 +180,17 @@ export class SessionService {
         if (session.createdBy.toString() !== userId) {
             throw new UnauthorizedException('user not authorized')
         }
-        const participantObject = new Types.ObjectId(participantId);
-        if (session.participants.includes(participantObject)) {
-            throw new Error('this participant was added before')
-        }
-        // validate user
-        const userResult = await this.checkUserService.checkUser(participantId);
+        // validate email
+        console.log('email', email);
+        const userResult = await this.checkUserService.checkEmail(email);
+        console.log('userResult', userResult);
         console.log('userResult', userResult);
         if (!userResult.success) {
             throw new NotFoundException('Participant User not found');
+        }
+        const participantObject = new Types.ObjectId(userResult.user._id);
+        if (session.participants.includes(participantObject)) {
+            throw new Error('this participant was added before')
         }
         session.participants.push(participantObject);
         await session.save();
@@ -135,7 +198,8 @@ export class SessionService {
         (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult});
         return session;
     }
-    async removeParticipant(sessionId: string, userId:string, participantId: string) {
+
+    async removeParticipantWithEmail(sessionId: string, userId:string, email: string) {
         const session = await this.sessionModel.findById(sessionId);
         if (!session) {
             throw new Error('Session not found');
@@ -143,17 +207,17 @@ export class SessionService {
         if (session.createdBy.toString() !== userId) {
             throw new UnauthorizedException('user not authorized')
         }
-        // validate user later
-        const userResult = await this.checkUserService.checkUser(participantId);
-        console.log('userResult', userResult);
+        // validate email
+        console.log('email', email);
+        const userResult = await this.checkUserService.checkEmail(email);
         if (!userResult.success) {
             throw new NotFoundException('Participant User not found');
         }
-        const participantObject = new Types.ObjectId(participantId);
+        const participantObject = new Types.ObjectId(userResult.user._id);
         if (!session.participants.includes(participantObject)) {
-            throw new Error('this participant is not a member of the session')
+            throw new Error('this participant is not a member of this session')
         }
-        session.participants = session.participants.filter(p => p.toString() !== participantId);
+        session.participants = session.participants.filter(p => p.toString() !== userResult.user._id);
         await session.save();
         (this.gateway.server as any).to(sessionId).emit('participant-removed', {data: userResult});
         return session;
@@ -171,7 +235,6 @@ export class SessionService {
         (this.gateway.server as any).to(sessionId).emit('session-renamed', {data: session});
         return session;
     }
-
 
     async deleteSession(sessionId, userId) {
         const session = await this.sessionModel.findById(sessionId);

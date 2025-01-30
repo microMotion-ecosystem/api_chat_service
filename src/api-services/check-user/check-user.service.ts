@@ -14,4 +14,12 @@ export class CheckUserService{
             throw(e);
         }
     }
+    async checkEmail(email: string) {
+        try{
+            console.log('email2', email);
+            return await this.checkUserQueue.send('check_email', {email}).toPromise();
+        } catch(e){
+            throw(e);
+        }
+    }
 }
