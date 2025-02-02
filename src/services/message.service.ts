@@ -92,10 +92,12 @@ export class MessageService {
         (this.gateway.server as any).to(data.sessionId).emit('user-message-created', {data: message});
         session.messages.push(message.id);
         await session.save();
-
+        const stream = message?.metadata?.stream === true ? true : false;
+        console.log(`stream is ${stream}`)
         await this.bullService.addMessageToQueue({
             sessionId: data.sessionId,
             llmType: message.llmType,
+            stream: stream
         });
         return message;
         // const sessionMessages = 
@@ -168,7 +170,7 @@ export class MessageService {
         return llmMessage;
     }
 
-    async handleRenameSession(sessionId:string, llmType:string, llmMessages:any){
+    async handleRenameSession(sessionId:string, llmType:string, llmMessages:any, stream: boolean){
         const session = await this.sessionModel.findById(sessionId);
         if (!session) {
             throw new NotFoundException('Session not found');
@@ -177,10 +179,7 @@ export class MessageService {
             const renameContent = 'give a short suitable title for this session , respond just with the new title with nothing else'
             llmMessages.push({role:'user', content:renameContent})
             let chatTitleResponse
-            if (llmType === 'gemini-1.5-flash') {
-                chatTitleResponse= await this.chatService.sendMessageToLLm(llmType, llmMessages, sessionId);
-            }
-            chatTitleResponse = await this.chatService.sendMessageToLLm(llmType, llmMessages);
+            chatTitleResponse = await this.chatService.sendMessageToLLm(llmType, llmMessages, sessionId, stream);
             (this.gateway.server as any).to(sessionId).emit('recommended-session-title', {data: chatTitleResponse.chatResponse});
             console.log(chatTitleResponse.chatResponse);
             session.renamed = true;

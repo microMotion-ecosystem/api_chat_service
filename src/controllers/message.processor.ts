@@ -16,19 +16,21 @@ export class MessageProcessor {
     @Process()
     async handleEvent(job: Job): Promise<void> {
         console.log('Processing job', job.id);
-        const {sessionId, llmType} = job.data;
+        const {sessionId, llmType, stream} = job.data;
         const sessionMessages = await this.messageService.findSessionMessages(sessionId);
         const formatedMessages = await this.messageService.formatSessionMessages(sessionMessages);
-        const llmResponse = await this.chatService.sendMessageToLLm(llmType, formatedMessages, sessionId);  
+        console.log('formatedMessages', formatedMessages);
+        const llmResponse = await this.chatService.sendMessageToLLm(llmType, formatedMessages, sessionId, stream);
         const llmMessage = await this.messageService.createLLmMessage(
             llmType,
             sessionId,
             llmResponse,
         );
-        console.log('formatedMessages', formatedMessages);
+        console.log('llmMessaege', llmMessage);
+        if (!stream){
+            (this.gateway.server as any).to(sessionId).emit('chat-message-created', {data: llmMessage});
+        }
 
-        (this.gateway.server as any).to(sessionId).emit('chat-message-created', {data: llmMessage});
-
-        await this.messageService.handleRenameSession(sessionId, llmType, formatedMessages);
+        await this.messageService.handleRenameSession(sessionId, llmType, formatedMessages, stream);
     }
 }

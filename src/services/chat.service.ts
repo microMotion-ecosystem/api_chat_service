@@ -8,12 +8,13 @@ export class ChatService {
         private readonly llmService: AskLLmService
     ) {}
 
-    async sendMessageToLLm(llmType: string, messages: any, sessionId?:string) {
+    async sendMessageToLLm(llmType: string, messages: any, sessionId?:string, stream?: boolean) {
         try{
             const body = {
                 messages,
                 llmType,
-                sessionId
+                sessionId,
+                stream
             }
             const response = await this.llmService.sendToLLM(body);
             if (response.success == true ) {

@@ -7,7 +7,6 @@ import { QueryModelDto } from 'src/dtos/query-model-dto';
 import { MessageService } from 'src/services/message.service';
 import { CreateMessageDto } from 'src/dtos/create-message.dto';
 import { UpdateMessageBodyDto } from 'src/dtos/update-message.dto';
-import { SessionService } from 'src/services/session.service';
 
 @Controller('message')
 export class MessageController {
