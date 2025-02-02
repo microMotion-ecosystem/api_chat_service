@@ -42,6 +42,7 @@ import { MessageProcessor } from './controllers/message.processor';
       redis: {
         host: process.env.Redis_Host,
         port: parseInt(process.env.Redis_Host_Port),
+        password: process.env.Redis_Pass,
       },
     }),
     BullModule.registerQueue({
