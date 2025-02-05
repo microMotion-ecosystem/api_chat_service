@@ -5,7 +5,13 @@ import { session } from "passport";
 import { Socket } from "socket.io";
 import { JwtAuthGuard } from "src/core/jwt-auth-guard/jwt-auth.guard";
 import { WsAuthGuard } from "src/core/jwt-auth-guard/ws-auth.guard";
-@WebSocketGateway()
+@WebSocketGateway({
+    cors: {
+      origin: '*', 
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
+  })
 export class GateWay implements OnGatewayDisconnect, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
