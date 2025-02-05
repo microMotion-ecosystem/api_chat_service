@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { SwaggerConfig } from './config/swagger';
 import { RabbitMqConfigModule } from './config/rabbitmq-config.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
