@@ -89,7 +89,7 @@ export class MessageService {
         const message = await this.messageModel.create(data);
         console.log('message', message);
 
-        (this.gateway.server as any).to(data.sessionId).emit('send-message', {data: message});
+        (this.gateway.server as any).to(data.sessionId).emit('user-message-created', {data: message});
         session.messages.push(message.id);
         await session.save();
         const stream = message?.metadata?.stream === true ? true : false;
