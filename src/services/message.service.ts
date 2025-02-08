@@ -48,10 +48,10 @@ export class MessageService {
     )
         {
             const userIdObject = new Types.ObjectId(userId)
-            const filter = { isDelete:false, sessionId: sessionId }
+            const filter = { isDelete:false, sessionId: sessionId };
             const {query, paginationObj} = await this.apiService.getAllDocs(
                 this.messageModel.find(),
-                {...filters, ...filter, page: pageIndex, limit: pageSize},
+                {...filters, ...filter, page: pageIndex, limit: pageSize, sort: 'createdAt'},
                 {},
             );
             // populate messages
