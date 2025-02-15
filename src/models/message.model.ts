@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, Model, Types } from "mongoose";
-import { MODEL, MSG_STATUS, MSG_TYPE } from "src/types/enum";
+import { MODEL, MSG_STATUS, MSG_TYPE } from "../types/enum";
 
 
 @Schema({ timestamps: true })

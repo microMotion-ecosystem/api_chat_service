@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { IsEnum, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
 import { HydratedDocument, Types } from "mongoose";
-import { MSG_STATUS, MSG_TYPE } from "src/types/enum";
+import { MSG_STATUS, MSG_TYPE } from "../types/enum";
 
 
 @Schema({ timestamps: true })

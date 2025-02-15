@@ -1,5 +1,5 @@
 import {Injectable, InternalServerErrorException} from '@nestjs/common';
-import { AskLLmService} from 'src/api-services/ask-llm/ask-llm.service';
+import { AskLLmService} from '../api-services/ask-llm/ask-llm.service';
 
 @Injectable()
 export class ChatService {

@@ -3,9 +3,9 @@ import { MessageBody, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, W
 import { Server } from "http";
 import { session } from "passport";
 import { Socket } from "socket.io";
-import { CheckUserService } from "src/api-services/check-user/check-user.service";
+import { CheckUserService } from "../api-services/check-user/check-user.service";
 import { JwtAuthGuard } from "src/core/jwt-auth-guard/jwt-auth.guard";
-import { WsAuthGuard } from "src/core/jwt-auth-guard/ws-auth.guard";
+import { WsAuthGuard } from "../core/jwt-auth-guard/ws-auth.guard";
 @WebSocketGateway({
     cors: {
       origin: '*', 
