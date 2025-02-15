@@ -188,6 +188,36 @@ export class SessionController {
                 return ResponseDto.throwBadRequest(err.message, err);
             }
     }
+    @Patch('enable_llm/:sessionId')
+    @UseGuards(JwtAuthGuard)
+    async enableLLMChat(
+        @Param('sessionId') sessionId:string, 
+        @Request() req: any) 
+        {
+            try{
+                const userId = req.user.userId;
+                const response = await this.sessionService.enableLLM(sessionId, userId);
+                return  ResponseDto.ok(response);
+            }catch(err){
+                return ResponseDto.throwBadRequest(err.message, err);
+            }
+    }
+
+    @Patch('disable_llm/:sessionId')
+    @UseGuards(JwtAuthGuard)
+    async disableLLMChat(
+        @Param('sessionId') sessionId:string, 
+        @Request() req: any) 
+        {
+            try{
+                const userId = req.user.userId;
+                const response = await this.sessionService.disableLLM(sessionId, userId);
+                return  ResponseDto.ok(response);
+            }catch(err){
+                return ResponseDto.throwBadRequest(err.message, err);
+            }
+    }
+
     @Patch('rename/:sessionId')
     @UseGuards(JwtAuthGuard)
     async renameSession(

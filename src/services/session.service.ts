@@ -236,6 +236,42 @@ export class SessionService {
         return session;
     }
 
+    async enableLLM(sessionId: string, userId: string) {
+        const session = await this.sessionModel.findById(sessionId);
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+        const userObject = new Types.ObjectId(userId);
+        if (session.createdBy.toString() !== userId && !session.participants.includes(userObject)) {
+            throw new UnauthorizedException('user not authorized')
+        }
+        if (session.enableLLM) {
+            throw new Error('llm is alrady enabled in this session')
+        }
+        session.enableLLM = true;
+        await session.save();
+        (this.gateway.server as any).to(sessionId).emit('llm-enabled', {data: session});
+        return session;
+    }
+    async disableLLM(sessionId: string, userId: string) {
+        const session = await this.sessionModel.findById(sessionId);
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+        const userObject = new Types.ObjectId(userId);
+        if (session.createdBy.toString() !== userId && !session.participants.includes(userObject)) {
+            throw new UnauthorizedException('user not authorized')
+        }
+        if (!session.enableLLM) {
+            throw new Error('llm is alrady not enabled in this session')
+        }
+        session.enableLLM = false;
+        await session.save();
+        (this.gateway.server as any).to(sessionId).emit('llm-disabled', {data: session});
+        return session;
+    }
+
+
     async deleteSession(sessionId, userId) {
         const session = await this.sessionModel.findById(sessionId);
         if (!session){

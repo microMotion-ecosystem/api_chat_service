@@ -35,8 +35,8 @@ export class Message{
     })
     llmType:MODEL;
 
-    // @Prop({ type: Boolean, default: true })
-    // enableChat: boolean;
+    @Prop({ type: Boolean, default: true })
+    enableLLM: boolean;
 
     @Prop({ type: Types.Map, default: {} })
     additionalFields: Record<string, any>;

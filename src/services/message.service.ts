@@ -76,8 +76,12 @@ export class MessageService {
     
     // use this.bullService
     async createMessage(data: CreateMessageDto, user: any) {
-        data = { ...data, senderId: user.userId };
+        console.log('user from token', user)
         const session = await this.sessionModel.findById(data.sessionId);
+        data = { ...data, 
+            senderId: user.userId,
+            enableLLM: session.enableLLM, 
+            metadata: {senderName: user.username} };
         console.log('session', session);
         if (!session) {
             throw new NotFoundException('Session not found');
@@ -94,57 +98,19 @@ export class MessageService {
         await session.save();
         const stream = message?.metadata?.stream === true ? true : false;
         console.log(`stream is ${stream}`)
-        await this.bullService.addMessageToQueue({
-            sessionId: data.sessionId,
-            llmType: message.llmType,
-            stream: stream
-        });
+        console.log(`session llm enabling status: ${session.enableLLM}`)
+        if(session.enableLLM) {
+            await this.bullService.addMessageToQueue({
+                sessionId: data.sessionId,
+                llmType: message.llmType,
+                stream: stream
+            });
+        }
         return message;
-        // const sessionMessages = 
-        //     await this.messageModel.find({sessionId: data.sessionId})
-        //                             .sort({createdAt:1});
-        // // console.log('newSession', newSession);
-        // console.log('sessionMessages', sessionMessages);
-        // const llmMessages = sessionMessages.map((msg)=>({
-        //     role: msg.senderType === 'user' ? 'user' : 'assistant',
-        //     content: msg.senderType === 'user' ? msg.body : msg.metadata.chatResponse
-        // }))
-        // let llmResponse;
-        // if (message.llmType === 'gemini-1.5-flash') {
-        //     llmResponse = await this.chatService.sendMessageToLLm(message.llmType, llmMessages, data.sessionId);
-        // }
-        // llmResponse = await this.chatService.sendMessageToLLm(message.llmType, llmMessages);
-        // const chatMessage = {
-        //     sessionId: data.sessionId,
-        //     body: "llm response",
-        //     senderType: 'assistant',
-        //     llmType: message.llmType,
-        //     metadata: llmResponse
-        // }
-        // const llmMessage = await this.messageModel.create(chatMessage);
-        // (this.gateway.server as any).to(data.sessionId).emit('chat-message-created', {data: llmMessage});
-        
-        // // rename session
-        // if (!session.renamed) {
-        //     const renameContent = 'give a suitable name for this session , respond just with the new name with nothing else'
-        //     llmMessages.push({role:'user', content:renameContent})
-        //     let chatTitleResponse
-        //     if (message.llmType === 'gemini-1.5-flash') {
-        //         chatTitleResponse= await this.chatService.sendMessageToLLm(message.llmType, llmMessages, data.sessionId);
-        //     }
-        //     chatTitleResponse = await this.chatService.sendMessageToLLm(message.llmType, llmMessages);
-        //     (this.gateway.server as any).to(message.sessionId).emit('recommended-session-title', {data: chatTitleResponse.chatResponse});
-        //     console.log(chatTitleResponse.chatResponse);
-        //     session.renamed = true;
-        //     await session.save()
-        // }
-
-        // console.log('llmResponse', llmResponse);
-        
-        // return message;
     }
     async findSessionMessages(sessionId: string) {
-        const messages = await this.messageModel.find({sessionId: sessionId});
+        const messages = await this.messageModel.find({sessionId: sessionId, enableLLM: true});
+        // console.log(`just messages tjat enable llm,${messages}`)
         if (!messages) {
             return [];
         }

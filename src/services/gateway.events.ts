@@ -3,6 +3,7 @@ import { MessageBody, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, W
 import { Server } from "http";
 import { session } from "passport";
 import { Socket } from "socket.io";
+import { CheckUserService } from "src/api-services/check-user/check-user.service";
 import { JwtAuthGuard } from "src/core/jwt-auth-guard/jwt-auth.guard";
 import { WsAuthGuard } from "src/core/jwt-auth-guard/ws-auth.guard";
 @WebSocketGateway({
@@ -13,6 +14,9 @@ import { WsAuthGuard } from "src/core/jwt-auth-guard/ws-auth.guard";
     },
   })
 export class GateWay implements OnGatewayDisconnect, OnGatewayDisconnect {
+    constructor(
+        private readonly checkUserService: CheckUserService,
+    ) {}
     @WebSocketServer()
     server: Server;
 
@@ -47,6 +51,20 @@ export class GateWay implements OnGatewayDisconnect, OnGatewayDisconnect {
         socket.leave(data.sessionId)
         console.log(`Client with id ${socket.id} leaved session ${data.sessionId}`)
         socket.emit('leaved-session', {sessionId: data.sessionId})
+    }
+
+    @UseGuards(WsAuthGuard)
+    @SubscribeMessage('typing')
+    async isTyping(socket:Socket, data:{sessionId: string, userId: string}){
+        // socket.leave(data.sessionId)
+        const user = await this.checkUserService.checkUser(data.userId);
+        if (user.success) {
+            console.log(`user ${user} is typing`);
+            socket.to(data.sessionId).emit('is-typing', {user: user.user})
+        } else {
+            socket.to(data.sessionId).emit('is-typing', {user: 'user not found'})
+        }
+        // socket.emit('is-typing', {sessionId: data.sessionId})
     }
     
 }

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { IsEnum, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsEnum, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
 import { HydratedDocument, Model, Types } from "mongoose";
 import { MODEL, MSG_STATUS, MSG_TYPE } from "src/types/enum";
 
@@ -12,6 +12,10 @@ export class CreateMessageDto {
     @IsMongoId()
     @IsOptional()
     senderId?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    enableLLM: boolean;
 
     @IsMongoId()
     sessionId: string;
