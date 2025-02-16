@@ -11,7 +11,6 @@ import { UpdateSessionRenameDto } from '../dtos/update-session.dto';
 import { SessionDocument } from '../models/session.model';
 import { GateWay } from './gateway.events';
 import * as crypto from 'crypto';
-import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class SessionService {
@@ -50,7 +49,7 @@ export class SessionService {
                 {},
                 ['title']
             );
-            const sessions = await query;
+            const sessions = await query.exec();
             return [
                 sessions,
                 {
@@ -79,7 +78,7 @@ export class SessionService {
                 ['title']
             );
             // populate messages
-            const sessions = await query;
+            const sessions = await query.exec();
             return [
                 sessions,
                 {
@@ -105,7 +104,7 @@ export class SessionService {
             const filter = { isDelete:false, _id:id }
             const session = await this.sessionModel.findOne(filter);
             if(!session){
-                return new NotFoundException('session not found')
+                throw  new NotFoundException('session not found')
             }
             const userIdObj = new Types.ObjectId(userId);
             if (session.participants.includes(userIdObj) || session.createdBy.toString() === userId) {
@@ -145,7 +144,7 @@ export class SessionService {
             const filter = { isDelete:false, _id:id }
             const session = await this.sessionModel.findOne(filter);
             if(!session){
-                return new NotFoundException('session not found')
+                throw new NotFoundException('session not found')
             }
             const participants = [];
             const userIdObj = new Types.ObjectId(userId);
@@ -275,7 +274,7 @@ export class SessionService {
     async deleteSession(sessionId, userId) {
         const session = await this.sessionModel.findById(sessionId);
         if (!session){
-            throw new NotFoundError('Session not found');
+            throw new NotFoundException('Session not found');
         }
         if (session.createdBy.toString() !== userId) {
             throw new UnauthorizedException('user not authorized')

@@ -149,14 +149,14 @@ describe('SessionService', () => {
       const mockSessions = [{ title: 'Participated Session 1' }];
       jest.spyOn(sessionModel, 'find').mockResolvedValue(mockSessions);
 
-      const result = await service.getparticipatedSessions('user-123');
+      const result = await service.getparticipatedSessions('507f1f77bcf86cd799439011');
       expect(result).toEqual(mockSessions);
     });
 
     it('should throw NotFoundException if no sessions found', async () => {
       jest.spyOn(sessionModel, 'find').mockResolvedValue([]);
 
-      await expect(service.getparticipatedSessions('user-123')).rejects.toThrow(
+      await expect(service.getparticipatedSessions('507f1f77bcf86cd799439011')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -166,24 +166,24 @@ describe('SessionService', () => {
     it('should return session if user is authorized', async () => {
       const mockSession = {
         _id: 'session-123',
-        createdBy: 'user-123',
-        participants: [new Types.ObjectId('user-123')],
+        createdBy: '507f1f77bcf86cd799439011',
+        participants: [new Types.ObjectId('507f1f77bcf86cd799439011')],
       };
       jest.spyOn(sessionModel, 'findOne').mockResolvedValue(mockSession);
 
-      const result = await service.getSession('session-123', 'user-123');
+      const result = await service.getSession('session-123', '507f1f77bcf86cd799439011');
       expect(result).toEqual(mockSession);
     });
 
     it('should throw UnauthorizedException if user is not authorized', async () => {
       const mockSession = {
         _id: 'session-123',
-        createdBy: 'user-456',
+        createdBy: '507f1f77bcf86cd799439011',
         participants: [],
       };
       jest.spyOn(sessionModel, 'findOne').mockResolvedValue(mockSession);
 
-      await expect(service.getSession('session-123', 'user-123')).rejects.toThrow(
+      await expect(service.getSession('session-123', '507f1f77bcf86cd799439031')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -191,7 +191,7 @@ describe('SessionService', () => {
     it('should throw NotFoundException if session does not exist', async () => {
       jest.spyOn(sessionModel, 'findOne').mockResolvedValue(null);
 
-      await expect(service.getSession('session-123', 'user-123')).rejects.toThrow(
+      await expect(service.getSession('session-123', '507f1f77bcf86cd799439011')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -259,17 +259,17 @@ describe('SessionService', () => {
     it('should add participant if user is creator', async () => {
       const mockSession = {
         _id: 'session-123',
-        createdBy: 'user-123',
+        createdBy: '507f1f77bcf86cd799439011',
         participants: [],
         save: jest.fn(),
       };
-      const mockUserResult = { success: true, user: { _id: 'user-456' } };
+      const mockUserResult = { success: true, user: { _id: '507f1f77bcf86cd799439013' } };
 
       jest.spyOn(sessionModel, 'findById').mockResolvedValue(mockSession);
       jest.spyOn(checkUserService, 'checkEmail').mockResolvedValue(mockUserResult);
 
-      const result = await service.addParticipantWithEmail('session-123', 'user-123', 'test@example.com');
-      expect(result.participants).toContainEqual(new Types.ObjectId('user-456'));
+      const result = await service.addParticipantWithEmail('session-123', '507f1f77bcf86cd799439011', 'test@example.com');
+      expect(result.participants).toContainEqual(new Types.ObjectId('507f1f77bcf86cd799439013'));
     });
 
     it('should throw UnauthorizedException if user is not creator', async () => {

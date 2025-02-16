@@ -131,7 +131,9 @@ describe('MessageService', () => {
         paginationObj: mockPagination,
       });
 
-      const result = await service.getsessionMessages({}, 1, 10, '507f1f77bcf86cd799439011', 'session-123');
+      const result= await service.getsessionMessages({}, 1, 10, '507f1f77bcf86cd799439011', 'session-123');
+      // console.log(result[0][0].exec())
+      // const message = await result[0]
       expect(result[0]).toEqual(mockMessages);
     //   expect(result[1].totalItems).toBe(mockPagination.count);
     });

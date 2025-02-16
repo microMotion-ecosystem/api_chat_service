@@ -55,7 +55,7 @@ export class MessageService {
                 {},
             );
             // populate messages
-            const messages = await query;
+            const messages = await query.exec()
             const session = await this.sessionModel.findById(sessionId);
             if (session.createdBy.toString() === userId || session.participants.includes(userIdObject)) {
 
@@ -78,14 +78,14 @@ export class MessageService {
     async createMessage(data: CreateMessageDto, user: any) {
         console.log('user from token', user)
         const session = await this.sessionModel.findById(data.sessionId);
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
         data = { ...data, 
             senderId: user.userId,
             enableLLM: session.enableLLM, 
             metadata: {senderName: user.username} };
         console.log('session', session);
-        if (!session) {
-            throw new NotFoundException('Session not found');
-        }
         if (session.createdBy.toString() !== user.userId && 
             !session.participants.includes(new Types.ObjectId(user.userId))) {
             throw new UnauthorizedException('User not authorized');
