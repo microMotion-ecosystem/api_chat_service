@@ -4,8 +4,6 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
-import { AppController } from './controllers/app.controller';
-import { AppService } from './services/app.service';
 import { MongodbModule } from './config/mongodb.module';
 import { HttpModule } from '@nestjs/axios';
 import { AuthApiService } from './api-services/auth-api/auth-api.service';
@@ -54,13 +52,11 @@ import { MessageProcessor } from './controllers/message.processor';
     ]),
   ],
   controllers: [
-    AppController,
     ChatController,
     MessageController,
     SessionController,
   ],
   providers: [
-    AppService,
     AuthApiService,
     JwtStrategy,
     MyHttpService,

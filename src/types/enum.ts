@@ -9,6 +9,7 @@ export enum MODEL {
 export enum MSG_TYPE {
     USER = 'user',
     BOT = 'assistant',
+    system = 'system',
 }
 
 export enum MSG_STATUS {

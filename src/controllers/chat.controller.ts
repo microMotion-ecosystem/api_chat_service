@@ -1,18 +1,26 @@
 import { Body, Controller, Get, HttpException, Param, Post, UseGuards } from '@nestjs/common';
-import {AppService} from '../services/app.service';
-import {ApiBearerAuth, ApiOperation, ApiResponse} from "@nestjs/swagger";
-import {JwtAuthGuard} from "../core/jwt-auth-guard/jwt-auth.guard";
+import { ApiOperation, ApiParam, ApiResponse} from "@nestjs/swagger";
 import { ResponseDto } from '../dtos/response.dto';
 import { ChatService } from 'src/services/chat.service';
 import { QueryModelDto } from 'src/dtos/query-model-dto';
+import { AskLLMDto } from 'src/dtos/ask-llm.dto';
 
 @Controller('chat')
 export class ChatController {
-    constructor(private readonly appService: AppService,
-        private readonly chatService: ChatService,
-    ) { }
+    constructor(private readonly chatService: ChatService) { }
+    
     @Post('llm/:llm_type')
-    async sendMessageToLLm(@Param() llm_type: QueryModelDto, @Body() body: {message: string}) {
+    @ApiOperation({summary: 'send message to llm'})
+    @ApiParam({
+        name: 'llm_type',
+        description: 'type of llm you want to respond to the message',
+        type: QueryModelDto
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'successfully get answer from llm',
+    })
+    async sendMessageToLLm(@Param() llm_type: QueryModelDto, @Body() body: AskLLMDto) {
         const llmType = llm_type.llm_type;
         try{
             console.log('llmType', llmType);
@@ -22,23 +30,5 @@ export class ChatController {
         } catch (err) {
             return ResponseDto.throwBadRequest(err.message, err);
         }
-    }
-    @Get()
-    // @ApiBearerAuth('access-token')
-    // @ApiOperation({summary: 'Check if the API is working'})
-    // @ApiResponse({status: 200, description: 'API is working correctly.'})
-    isWorking(): ResponseDto<string> {
-      return ResponseDto.ok(this.appService.isWorking());
-      // return ResponseDto.throwError(this.appService.isWorking());
-    }
-
-
-    @UseGuards(JwtAuthGuard)
-    @Get('api/v1/demo')
-    @ApiBearerAuth('access-token')
-    @ApiOperation({summary: 'Demo route'})
-    @ApiResponse({status: 200, description: 'Returns a demo text.'})
-    demo(): ResponseDto {
-        return ResponseDto.msg('demo');
     }
 }
