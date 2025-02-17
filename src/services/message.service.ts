@@ -103,7 +103,9 @@ export class MessageService {
             await this.bullService.addMessageToQueue({
                 sessionId: data.sessionId,
                 llmType: message.llmType,
-                stream: stream
+                stream: stream,
+                messageId: message.id,
+                senderId: user.userId,
             });
         }
         return message;
@@ -124,15 +126,18 @@ export class MessageService {
         return llmMessages;
     }
 
-    async createLLmMessage(llmType: string, sessionId: string, llmResponse: any) {
+    async createLLmMessage(llmType: string, sessionId: string, llmResponse: any, messageId:string, senderId: string) {
         const chatMessage = {
             sessionId: sessionId,
             body: "llm response",
             senderType: 'assistant',
+            senderId: senderId,
             llmType: llmType,
-            metadata: llmResponse
+            metadata: llmResponse,
+            additionalFields: {messageId: messageId}
         }
         const llmMessage = await this.messageModel.create(chatMessage);
+        console.log('llmMessage is just created', llmMessage);
         return llmMessage;
     }
 
@@ -168,16 +173,25 @@ export class MessageService {
         return message;
     }
 
-    async deleteMessage(id: string,userId: string) {
-        const filter = { _id: id, senderId: userId };
-        const message = await this.messageModel.findOneAndUpdate(filter, {isDelete: true}, { new: true });
-        const session = await this.sessionModel.findById(message.sessionId);
-        session.messages = session.messages.filter((msg) => msg != message.id);
-        await session.save();
-        if (!message) {
+    async deleteMessage(id: string, userId: string) {
+        const filter = { _id: id }; // this delete user message
+        const filter2 = {'additionalFields.messageId':id}; // this delete llm message
+        const userMessage = await this.messageModel.findOneAndUpdate(filter, {isDelete: true}, { new: true });
+        const llmMessage = await this.messageModel.findOneAndUpdate(filter2, {isDelete: true} , {new: true});
+        
+        console.log(`userId is ==>${userId}`)
+        console.log(`userMessage ==> ${userMessage}\n llmMessage ==> ${llmMessage}`)
+        if (!userMessage && !llmMessage) {
             throw new NotFoundException('Message not found');
         }
-        (this.gateway.server as any).to(message.sessionId).emit('message-deleted', {data: message});
-        return message;
+        if (String(userMessage.senderId) !== userId) {
+            throw new UnauthorizedException('User not authorized to delete this message');
+        }
+
+        if (String(llmMessage.senderId) !== userId) {
+            throw new UnauthorizedException('User not authorized to delete this message');
+        }
+        (this.gateway.server as any).to(userMessage.sessionId).emit('message-deleted', {data: userMessage});
+        return userMessage;
     }
 }

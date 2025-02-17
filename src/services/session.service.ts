@@ -11,6 +11,8 @@ import { UpdateSessionRenameDto } from '../dtos/update-session.dto';
 import { SessionDocument } from '../models/session.model';
 import { GateWay } from './gateway.events';
 import * as crypto from 'crypto';
+import { MailerService } from 'src/nodemailer/nodemailer.service';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class SessionService {
@@ -19,6 +21,7 @@ export class SessionService {
         private readonly llmService: AskLLmService,
         private readonly checkUserService: CheckUserService,
         private readonly gateway: GateWay,
+        private readonly mailService: MailerService,
         private apiService: ApiService<SessionDocument, QuerySessionDto>, 
         @InjectModel('Session')  private  sessionModel: Model<SessionDocument>
     ) {}
@@ -180,22 +183,54 @@ export class SessionService {
             throw new UnauthorizedException('user not authorized')
         }
         // validate email
-        console.log('email', email);
         const userResult = await this.checkUserService.checkEmail(email);
-        console.log('userResult', userResult);
         console.log('userResult', userResult);
         if (!userResult.success) {
             throw new NotFoundException('Participant User not found');
         }
-        const participantObject = new Types.ObjectId(userResult.user._id);
-        if (session.participants.includes(participantObject)) {
-            throw new Error('this participant was added before')
+        const code = await this.mailService.resetCode()
+        const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+        console.log(`user id type= ${userResult.user._id}`)
+        const joinedUser = await this.checkUserService.saveUserHashedCode(userResult.user._id, hashedCode)
+        console.log('joinedUser', joinedUser);
+        if(!joinedUser.success){
+            throw new BadRequestException('Failed to save code');
         }
-        session.participants.push(participantObject);
-        await session.save();
+        console.log(`joined user`, joinedUser);
+        try {
+            await this.mailService.sendJoinCode({
+                mail: email,
+                name: userResult.user.userName,
+                code: code
+            });
+          } catch (e) {
+            throw new BadRequestException('Failed to send code');
+          }
+        //   (this.gateway.server as any).to(sessionId).emit('participant-added', {data: user]Result});
+          return { message: 'code sent successfully' };
+        //   return { message: 'code sent successfully' };
+        // // // const participantObject = new Types.ObjectId(userResult.user._id);
+        // // if (session.participants.includes(participantObject)) {
+        // //     throw new Error('this participant was added before')
+        // // }
+        // // session.participants.push(participantObject);
+        // await session.save();
+    }
 
-        (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult});
-        return session;
+    async acceptJoinSessionInvitation(code: string, sessionId:string) {
+        const session = await this.sessionModel.findById(sessionId);
+        if(!session){
+            throw new NotFoundException('session not found')
+        }
+        const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+        const userResult = await this.checkUserService.getUserByCode(hashedCode);
+
+        if(!userResult.success) {
+            throw new NotFoundException(`User not found or code is expired`)
+        }
+        const participantObject = new Types.ObjectId(userResult.user._id)
+        session.participants.push(participantObject);
+        return await session.save();
     }
 
     async removeParticipantWithEmail(sessionId: string, userId:string, email: string) {

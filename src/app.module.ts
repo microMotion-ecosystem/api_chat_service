@@ -31,6 +31,7 @@ import { GateWay } from './services/gateway.events';
 import { BullModule } from '@nestjs/bull';
 import { BullSevice } from './services/bull.service';
 import { MessageProcessor } from './controllers/message.processor';
+import { MailerModule } from './nodemailer/nodemailer.module';
 @Module({
   imports: [MongodbModule,
     HttpModule,
@@ -50,6 +51,7 @@ import { MessageProcessor } from './controllers/message.processor';
       { name: Message.name, schema: MessageSchema },
       { name: Session.name, schema: SessionSchema}
     ]),
+    MailerModule,
   ],
   controllers: [
     ChatController,

@@ -276,6 +276,34 @@ export class SessionController {
                 return ResponseDto.throwBadRequest(err.message, err);
             }
     }
+
+    @Patch('acceptInvitation/:code')
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({summary: 'Accept invitation to session'})
+    @ApiBearerAuth('access-token')
+    // @ApiBody({ type: UpdateSessionAddParticipantDto})
+    @ApiParam({
+        name: 'code',
+        description: 'code that sent to email',
+        type: String
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'successfully joined user to the session'
+    })
+    async acceptInvitationCode(
+        @Param('code') code:string, 
+        @Body() body: {sessionId:string},
+        @Request() req: any) 
+        {
+            try{
+                const userId = req.user.userId;
+                const response = await this.sessionService.acceptJoinSessionInvitation(code, body.sessionId)
+                return  ResponseDto.ok(response);
+            }catch(err){
+                return ResponseDto.throwBadRequest(err.message, err);
+            }
+    }
     
     @Delete('removeParticipant/:sessionId')
     @UseGuards(JwtAuthGuard)

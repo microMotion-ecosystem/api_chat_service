@@ -22,4 +22,20 @@ export class CheckUserService{
             throw(e);
         }
     }
+
+    async saveUserHashedCode(id: string, code:string) {
+        try{
+            return await this.checkUserQueue.send('save_hashed_code', {id, code}).toPromise();
+        }catch(e){
+            throw(e)
+        }
+    }
+
+    async getUserByCode(code:string) {
+        try{
+            return await this.checkUserQueue.send('get_user_by_code', {code}).toPromise();
+        }catch(e){
+            throw(e)
+        }
+    }
 }
