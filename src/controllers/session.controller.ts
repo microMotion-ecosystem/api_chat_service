@@ -278,7 +278,7 @@ export class SessionController {
     }
 
     @Patch('acceptInvitation/:code')
-    @UseGuards(JwtAuthGuard)
+    // @UseGuards(JwtAuthGuard)
     @ApiOperation({summary: 'Accept invitation to session'})
     @ApiBearerAuth('access-token')
     // @ApiBody({ type: UpdateSessionAddParticipantDto})
@@ -297,7 +297,7 @@ export class SessionController {
         @Request() req: any) 
         {
             try{
-                const userId = req.user.userId;
+                // const userId = req.user.userId;
                 const response = await this.sessionService.acceptJoinSessionInvitation(code, body.sessionId)
                 return  ResponseDto.ok(response);
             }catch(err){

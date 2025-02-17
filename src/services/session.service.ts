@@ -201,7 +201,8 @@ export class SessionService {
             await this.mailService.sendJoinCode({
                 mail: email,
                 name: userResult.user.userName,
-                code: code
+                code: code,
+                sessionId: sessionId
             });
           } catch (e) {
             throw new BadRequestException('Failed to send code');
@@ -224,12 +225,12 @@ export class SessionService {
         }
         const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
         const userResult = await this.checkUserService.getUserByCode(hashedCode);
-
-        if(!userResult.success) {
+        if(!userResult.success ) {
             throw new NotFoundException(`User not found or code is expired`)
         }
         const participantObject = new Types.ObjectId(userResult.user._id)
         session.participants.push(participantObject);
+        (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult.user});
         return await session.save();
     }
 

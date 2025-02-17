@@ -38,4 +38,12 @@ export class CheckUserService{
             throw(e)
         }
     }
+
+    async restoreMetadata(code:string) {
+        try{
+            return await this.checkUserQueue.send('restore_user_metadata', {code}).toPromise();
+        }catch(e){
+            throw(e)
+        }
+    }
 }
