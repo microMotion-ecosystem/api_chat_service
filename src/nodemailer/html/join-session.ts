@@ -100,13 +100,18 @@ export const joinSessionInvitation = (
     
     <script>
         function acceptInvitation() {
-            fetch("http://[::1]:5512/api/v1/session/acceptInvitation/" + encodeURIComponent("${code}"), {
-                method: "PATCH",
+            // Construct the GET URL with the code as a path param and sessionId as a query param
+            const url = "http://[::1]:5512/api/v1/session/acceptInvitation/" +
+                        encodeURIComponent("${code}") +
+                        "?sessionId=" +
+                        encodeURIComponent("${sessionId}");
+            
+            fetch(url, {
+                method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                     "x-Platform": "fuse"
-                },
-                body: JSON.stringify({ sessionId: "${sessionId}" })
+                }
             })
             .then(response => {
                 if (!response.ok) {
@@ -115,9 +120,21 @@ export const joinSessionInvitation = (
                 return response.json();
             })
             .then(data => {
-                alert("Invitation accepted successfully!");
-                // Optionally, redirect the user after success:
-                window.location.href = "http://[::1]:5512/session";
+                // Replace the current content with a success message and login link.
+                // Note: The inner template literal is escaped using \` so it doesn't conflict with the outer one.
+                document.body.innerHTML = \`
+                    <div class="container">
+                        <div class="header">Session Joined Successfully!</div>
+                        <div class="content">
+                            <p>Congratulations, <strong>${name}</strong>! You have successfully joined the session.</p>
+                            <p>Please click the button below to login and view your sessions:</p>
+                            <a href="https://chat.deepseek.com/" class="button">Login</a>
+                        </div>
+                        <div class="footer">
+                            <p>Need help? Contact our support team.</p>
+                        </div>
+                    </div>
+                \`;
             })
             .catch(error => {
                 alert("Error accepting invitation. Please try again.");

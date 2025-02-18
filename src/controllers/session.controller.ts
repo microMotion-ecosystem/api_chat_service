@@ -11,6 +11,7 @@ import { resolveSoa } from 'dns';
 import { RoleGuard } from 'src/core/role/role.guard';
 import { Role } from 'src/core/role/role.decorator';
 import { AskLLMDto } from 'src/dtos/ask-llm.dto';
+import { QueryAcceptInvitationDto } from 'src/dtos/query-accept-invitation.dto';
 
 @Controller('session')
 export class SessionController {
@@ -249,7 +250,7 @@ export class SessionController {
         }
     }
 
-    @Put('addParticipant/:sessionId')
+    @Patch('addParticipant/:sessionId')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({summary: 'Add participant to the session'})
     @ApiBearerAuth('access-token')
@@ -278,14 +279,17 @@ export class SessionController {
     }
 
     @Patch('acceptInvitation/:code')
-    // @UseGuards(JwtAuthGuard)
     @ApiOperation({summary: 'Accept invitation to session'})
-    @ApiBearerAuth('access-token')
-    // @ApiBody({ type: UpdateSessionAddParticipantDto})
     @ApiParam({
         name: 'code',
         description: 'code that sent to email',
         type: String
+    })
+    @ApiQuery({
+        name: 'sessionId',
+        description: 'Session id to join after accept invitation',
+        required: false,
+        type: QueryAcceptInvitationDto,
     })
     @ApiResponse({
         status: 200,
@@ -293,8 +297,8 @@ export class SessionController {
     })
     async acceptInvitationCode(
         @Param('code') code:string, 
-        @Body() body: {sessionId:string},
-        @Request() req: any) 
+        @Query() body: QueryAcceptInvitationDto
+    ) 
         {
             try{
                 // const userId = req.user.userId;

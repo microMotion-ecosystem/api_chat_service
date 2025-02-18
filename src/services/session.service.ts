@@ -208,7 +208,7 @@ export class SessionService {
             throw new BadRequestException('Failed to send code');
           }
         //   (this.gateway.server as any).to(sessionId).emit('participant-added', {data: user]Result});
-          return { message: 'code sent successfully' };
+          return 'code sent successfully' ;
         //   return { message: 'code sent successfully' };
         // // // const participantObject = new Types.ObjectId(userResult.user._id);
         // // if (session.participants.includes(participantObject)) {
@@ -228,7 +228,12 @@ export class SessionService {
         if(!userResult.success ) {
             throw new NotFoundException(`User not found or code is expired`)
         }
-        const participantObject = new Types.ObjectId(userResult.user._id)
+        const participantObject = new Types.ObjectId(userResult.user._id);
+        session.participants.forEach((p)=>{
+            if(p.toString() === userResult.user._id){
+                throw new Error('this participant is already a member of this session')
+            }
+        })
         session.participants.push(participantObject);
         (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult.user});
         return await session.save();
@@ -239,14 +244,16 @@ export class SessionService {
         if (!session) {
             throw new Error('Session not found');
         }
-        if (session.createdBy.toString() !== userId) {
-            throw new UnauthorizedException('user not authorized')
-        }
         // validate email
         console.log('email', email);
         const userResult = await this.checkUserService.checkEmail(email);
         if (!userResult.success) {
             throw new NotFoundException('Participant User not found');
+        }
+        // only session admin and joined user can leave the session
+        console.log(`session creator =>${session.createdBy.toString()}\n user id => ${userId} \n email id => ${userResult.user._id}`)
+        if (session.createdBy.toString() !== userId && userResult.user._id !== userId) {
+            throw new UnauthorizedException('You are not authorized to remove this participant')
         }
         const participantObject = new Types.ObjectId(userResult.user._id);
         if (!session.participants.includes(participantObject)) {
