@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, Model, Types } from "mongoose";
-import { MODEL, MSG_STATUS, MSG_TYPE } from "src/types/enum";
+import { MODEL, MSG_STATUS, MSG_TYPE } from "../types/enum";
 
 
 @Schema({ timestamps: true })
@@ -35,8 +35,8 @@ export class Message{
     })
     llmType:MODEL;
 
-    // @Prop({ type: Boolean, default: true })
-    // enableChat: boolean;
+    @Prop({ type: Boolean, default: true })
+    enableLLM: boolean;
 
     @Prop({ type: Types.Map, default: {} })
     additionalFields: Record<string, any>;

@@ -2,16 +2,17 @@ import {Injectable, InternalServerErrorException, NotFoundException, Unauthorize
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { NotFoundError } from 'rxjs';
-import { AskLLmService} from 'src/api-services/ask-llm/ask-llm.service';
-import { CheckUserService } from 'src/api-services/check-user/check-user.service';
-import { ApiService } from 'src/core/Api/api.service';
-import { CreateSessionDto } from "src/dtos/create-session.dto";
-import { QuerySessionDto } from 'src/dtos/query-session.dto';
-import { UpdateSessionRenameDto } from 'src/dtos/update-session.dto';
-import { SessionDocument } from 'src/models/session.model';
+import { AskLLmService} from '../api-services/ask-llm/ask-llm.service';
+import { CheckUserService } from '../api-services/check-user/check-user.service';
+import { ApiService } from '../core/Api/api.service';
+import { CreateSessionDto } from "../dtos/create-session.dto";
+import { QuerySessionDto } from '../dtos/query-session.dto';
+import { UpdateSessionRenameDto } from '../dtos/update-session.dto';
+import { SessionDocument } from '../models/session.model';
 import { GateWay } from './gateway.events';
 import * as crypto from 'crypto';
-import * as bcrypt from 'bcryptjs';
+import { MailerService } from 'src/nodemailer/nodemailer.service';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class SessionService {
@@ -20,6 +21,7 @@ export class SessionService {
         private readonly llmService: AskLLmService,
         private readonly checkUserService: CheckUserService,
         private readonly gateway: GateWay,
+        private readonly mailService: MailerService,
         private apiService: ApiService<SessionDocument, QuerySessionDto>, 
         @InjectModel('Session')  private  sessionModel: Model<SessionDocument>
     ) {}
@@ -50,7 +52,7 @@ export class SessionService {
                 {},
                 ['title']
             );
-            const sessions = await query;
+            const sessions = await query.exec();
             return [
                 sessions,
                 {
@@ -79,7 +81,7 @@ export class SessionService {
                 ['title']
             );
             // populate messages
-            const sessions = await query;
+            const sessions = await query.exec();
             return [
                 sessions,
                 {
@@ -105,7 +107,7 @@ export class SessionService {
             const filter = { isDelete:false, _id:id }
             const session = await this.sessionModel.findOne(filter);
             if(!session){
-                return new NotFoundException('session not found')
+                throw  new NotFoundException('session not found')
             }
             const userIdObj = new Types.ObjectId(userId);
             if (session.participants.includes(userIdObj) || session.createdBy.toString() === userId) {
@@ -145,7 +147,7 @@ export class SessionService {
             const filter = { isDelete:false, _id:id }
             const session = await this.sessionModel.findOne(filter);
             if(!session){
-                return new NotFoundException('session not found')
+                throw new NotFoundException('session not found')
             }
             const participants = [];
             const userIdObj = new Types.ObjectId(userId);
@@ -181,22 +183,55 @@ export class SessionService {
             throw new UnauthorizedException('user not authorized')
         }
         // validate email
-        console.log('email', email);
         const userResult = await this.checkUserService.checkEmail(email);
-        console.log('userResult', userResult);
         console.log('userResult', userResult);
         if (!userResult.success) {
             throw new NotFoundException('Participant User not found');
         }
-        const participantObject = new Types.ObjectId(userResult.user._id);
-        if (session.participants.includes(participantObject)) {
-            throw new Error('this participant was added before')
+        const code = await this.mailService.resetCode()
+        const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+        console.log(`user id type= ${userResult.user._id}`)
+        const joinedUser = await this.checkUserService.saveUserHashedCode(userResult.user._id, hashedCode)
+        console.log('joinedUser', joinedUser);
+        if(!joinedUser.success){
+            throw new BadRequestException('Failed to save code');
         }
-        session.participants.push(participantObject);
-        await session.save();
+        console.log(`joined user`, joinedUser);
+        try {
+            await this.mailService.sendJoinCode({
+                mail: email,
+                name: userResult.user.userName,
+                code: code,
+                sessionId: sessionId
+            });
+          } catch (e) {
+            throw new BadRequestException('Failed to send code');
+          }
+        //   (this.gateway.server as any).to(sessionId).emit('participant-added', {data: user]Result});
+          return { message: 'code sent successfully' };
+        //   return { message: 'code sent successfully' };
+        // // // const participantObject = new Types.ObjectId(userResult.user._id);
+        // // if (session.participants.includes(participantObject)) {
+        // //     throw new Error('this participant was added before')
+        // // }
+        // // session.participants.push(participantObject);
+        // await session.save();
+    }
 
-        (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult});
-        return session;
+    async acceptJoinSessionInvitation(code: string, sessionId:string) {
+        const session = await this.sessionModel.findById(sessionId);
+        if(!session){
+            throw new NotFoundException('session not found')
+        }
+        const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+        const userResult = await this.checkUserService.getUserByCode(hashedCode);
+        if(!userResult.success ) {
+            throw new NotFoundException(`User not found or code is expired`)
+        }
+        const participantObject = new Types.ObjectId(userResult.user._id)
+        session.participants.push(participantObject);
+        (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult.user});
+        return await session.save();
     }
 
     async removeParticipantWithEmail(sessionId: string, userId:string, email: string) {
@@ -236,10 +271,46 @@ export class SessionService {
         return session;
     }
 
+    async enableLLM(sessionId: string, userId: string) {
+        const session = await this.sessionModel.findById(sessionId);
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+        const userObject = new Types.ObjectId(userId);
+        if (session.createdBy.toString() !== userId && !session.participants.includes(userObject)) {
+            throw new UnauthorizedException('user not authorized')
+        }
+        if (session.enableLLM) {
+            throw new Error('llm is alrady enabled in this session')
+        }
+        session.enableLLM = true;
+        await session.save();
+        (this.gateway.server as any).to(sessionId).emit('llm-enabled', {data: session});
+        return session;
+    }
+    async disableLLM(sessionId: string, userId: string) {
+        const session = await this.sessionModel.findById(sessionId);
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+        const userObject = new Types.ObjectId(userId);
+        if (session.createdBy.toString() !== userId && !session.participants.includes(userObject)) {
+            throw new UnauthorizedException('user not authorized')
+        }
+        if (!session.enableLLM) {
+            throw new Error('llm is alrady not enabled in this session')
+        }
+        session.enableLLM = false;
+        await session.save();
+        (this.gateway.server as any).to(sessionId).emit('llm-disabled', {data: session});
+        return session;
+    }
+
+
     async deleteSession(sessionId, userId) {
         const session = await this.sessionModel.findById(sessionId);
         if (!session){
-            throw new NotFoundError('Session not found');
+            throw new NotFoundException('Session not found');
         }
         if (session.createdBy.toString() !== userId) {
             throw new UnauthorizedException('user not authorized')

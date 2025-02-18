@@ -4,8 +4,6 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
-import { AppController } from './controllers/app.controller';
-import { AppService } from './services/app.service';
 import { MongodbModule } from './config/mongodb.module';
 import { HttpModule } from '@nestjs/axios';
 import { AuthApiService } from './api-services/auth-api/auth-api.service';
@@ -33,6 +31,7 @@ import { GateWay } from './services/gateway.events';
 import { BullModule } from '@nestjs/bull';
 import { BullSevice } from './services/bull.service';
 import { MessageProcessor } from './controllers/message.processor';
+import { MailerModule } from './nodemailer/nodemailer.module';
 @Module({
   imports: [MongodbModule,
     HttpModule,
@@ -52,15 +51,14 @@ import { MessageProcessor } from './controllers/message.processor';
       { name: Message.name, schema: MessageSchema },
       { name: Session.name, schema: SessionSchema}
     ]),
+    MailerModule,
   ],
   controllers: [
-    AppController,
     ChatController,
     MessageController,
     SessionController,
   ],
   providers: [
-    AppService,
     AuthApiService,
     JwtStrategy,
     MyHttpService,

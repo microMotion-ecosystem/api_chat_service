@@ -16,7 +16,7 @@ export class MessageProcessor {
     @Process()
     async handleEvent(job: Job): Promise<void> {
         console.log('Processing job', job.id);
-        const {sessionId, llmType, stream} = job.data;
+        const {sessionId, llmType, stream, messageId, senderId} = job.data;
         const sessionMessages = await this.messageService.findSessionMessages(sessionId);
         const formatedMessages = await this.messageService.formatSessionMessages(sessionMessages);
         console.log('formatedMessages', formatedMessages);
@@ -25,6 +25,8 @@ export class MessageProcessor {
             llmType,
             sessionId,
             llmResponse,
+            messageId,
+            senderId
         );
         console.log('llmMessaege', llmMessage);
         if (!stream){

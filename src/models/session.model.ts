@@ -16,6 +16,8 @@ export class Session {
 
     // @Prop([{ type: Types.ObjectId, ref: 'Message' }])
     // messages: Types.ObjectId[];
+    @Prop({ type: Boolean, default: true })
+    enableLLM: boolean;
 
     @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'Message' }])
     messages: Message[];

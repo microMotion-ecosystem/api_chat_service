@@ -2,13 +2,13 @@ import {Injectable, InternalServerErrorException, NotFoundException, Unauthorize
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { Model } from 'mongoose';
-import { AskLLmService} from 'src/api-services/ask-llm/ask-llm.service';
-import { ApiService } from 'src/core/Api/api.service';
-import { CreateMessageDto } from 'src/dtos/create-message.dto';
-import { QueryMessageDto } from 'src/dtos/query-message.dto';
-import { UpdateMessageBodyDto } from 'src/dtos/update-message.dto';
-import { MessageDocument } from 'src/models/message.model';
-import { SessionDocument } from 'src/models/session.model';
+import { AskLLmService} from '../api-services/ask-llm/ask-llm.service';
+import { ApiService } from '../core/Api/api.service';
+import { CreateMessageDto } from '../dtos/create-message.dto';
+import { QueryMessageDto } from '../dtos/query-message.dto';
+import { UpdateMessageBodyDto } from '../dtos/update-message.dto';
+import { MessageDocument } from '../models/message.model';
+import { SessionDocument } from '../models/session.model';
 import { GateWay } from './gateway.events';
 import { ChatService } from './chat.service';
 import { BullSevice } from './bull.service';
@@ -55,7 +55,7 @@ export class MessageService {
                 {},
             );
             // populate messages
-            const messages = await query;
+            const messages = await query.exec()
             const session = await this.sessionModel.findById(sessionId);
             if (session.createdBy.toString() === userId || session.participants.includes(userIdObject)) {
 
@@ -76,12 +76,16 @@ export class MessageService {
     
     // use this.bullService
     async createMessage(data: CreateMessageDto, user: any) {
-        data = { ...data, senderId: user.userId };
+        console.log('user from token', user)
         const session = await this.sessionModel.findById(data.sessionId);
-        console.log('session', session);
         if (!session) {
             throw new NotFoundException('Session not found');
         }
+        data = { ...data, 
+            senderId: user.userId,
+            enableLLM: session.enableLLM, 
+            metadata: {senderName: user.username} };
+        console.log('session', session);
         if (session.createdBy.toString() !== user.userId && 
             !session.participants.includes(new Types.ObjectId(user.userId))) {
             throw new UnauthorizedException('User not authorized');
@@ -94,57 +98,21 @@ export class MessageService {
         await session.save();
         const stream = message?.metadata?.stream === true ? true : false;
         console.log(`stream is ${stream}`)
-        await this.bullService.addMessageToQueue({
-            sessionId: data.sessionId,
-            llmType: message.llmType,
-            stream: stream
-        });
+        console.log(`session llm enabling status: ${session.enableLLM}`)
+        if(session.enableLLM) {
+            await this.bullService.addMessageToQueue({
+                sessionId: data.sessionId,
+                llmType: message.llmType,
+                stream: stream,
+                messageId: message.id,
+                senderId: user.userId,
+            });
+        }
         return message;
-        // const sessionMessages = 
-        //     await this.messageModel.find({sessionId: data.sessionId})
-        //                             .sort({createdAt:1});
-        // // console.log('newSession', newSession);
-        // console.log('sessionMessages', sessionMessages);
-        // const llmMessages = sessionMessages.map((msg)=>({
-        //     role: msg.senderType === 'user' ? 'user' : 'assistant',
-        //     content: msg.senderType === 'user' ? msg.body : msg.metadata.chatResponse
-        // }))
-        // let llmResponse;
-        // if (message.llmType === 'gemini-1.5-flash') {
-        //     llmResponse = await this.chatService.sendMessageToLLm(message.llmType, llmMessages, data.sessionId);
-        // }
-        // llmResponse = await this.chatService.sendMessageToLLm(message.llmType, llmMessages);
-        // const chatMessage = {
-        //     sessionId: data.sessionId,
-        //     body: "llm response",
-        //     senderType: 'assistant',
-        //     llmType: message.llmType,
-        //     metadata: llmResponse
-        // }
-        // const llmMessage = await this.messageModel.create(chatMessage);
-        // (this.gateway.server as any).to(data.sessionId).emit('chat-message-created', {data: llmMessage});
-        
-        // // rename session
-        // if (!session.renamed) {
-        //     const renameContent = 'give a suitable name for this session , respond just with the new name with nothing else'
-        //     llmMessages.push({role:'user', content:renameContent})
-        //     let chatTitleResponse
-        //     if (message.llmType === 'gemini-1.5-flash') {
-        //         chatTitleResponse= await this.chatService.sendMessageToLLm(message.llmType, llmMessages, data.sessionId);
-        //     }
-        //     chatTitleResponse = await this.chatService.sendMessageToLLm(message.llmType, llmMessages);
-        //     (this.gateway.server as any).to(message.sessionId).emit('recommended-session-title', {data: chatTitleResponse.chatResponse});
-        //     console.log(chatTitleResponse.chatResponse);
-        //     session.renamed = true;
-        //     await session.save()
-        // }
-
-        // console.log('llmResponse', llmResponse);
-        
-        // return message;
     }
     async findSessionMessages(sessionId: string) {
-        const messages = await this.messageModel.find({sessionId: sessionId});
+        const messages = await this.messageModel.find({sessionId: sessionId, enableLLM: true});
+        // console.log(`just messages tjat enable llm,${messages}`)
         if (!messages) {
             return [];
         }
@@ -158,15 +126,18 @@ export class MessageService {
         return llmMessages;
     }
 
-    async createLLmMessage(llmType: string, sessionId: string, llmResponse: any) {
+    async createLLmMessage(llmType: string, sessionId: string, llmResponse: any, messageId:string, senderId: string) {
         const chatMessage = {
             sessionId: sessionId,
             body: "llm response",
             senderType: 'assistant',
+            senderId: senderId,
             llmType: llmType,
-            metadata: llmResponse
+            metadata: llmResponse,
+            additionalFields: {messageId: messageId}
         }
         const llmMessage = await this.messageModel.create(chatMessage);
+        console.log('llmMessage is just created', llmMessage);
         return llmMessage;
     }
 
@@ -202,16 +173,25 @@ export class MessageService {
         return message;
     }
 
-    async deleteMessage(id: string,userId: string) {
-        const filter = { _id: id, senderId: userId };
-        const message = await this.messageModel.findOneAndUpdate(filter, {isDelete: true}, { new: true });
-        const session = await this.sessionModel.findById(message.sessionId);
-        session.messages = session.messages.filter((msg) => msg != message.id);
-        await session.save();
-        if (!message) {
+    async deleteMessage(id: string, userId: string) {
+        const filter = { _id: id }; // this delete user message
+        const filter2 = {'additionalFields.messageId':id}; // this delete llm message
+        const userMessage = await this.messageModel.findOneAndUpdate(filter, {isDelete: true}, { new: true });
+        const llmMessage = await this.messageModel.findOneAndUpdate(filter2, {isDelete: true} , {new: true});
+        
+        console.log(`userId is ==>${userId}`)
+        console.log(`userMessage ==> ${userMessage}\n llmMessage ==> ${llmMessage}`)
+        if (!userMessage && !llmMessage) {
             throw new NotFoundException('Message not found');
         }
-        (this.gateway.server as any).to(message.sessionId).emit('message-deleted', {data: message});
-        return message;
+        if (String(userMessage.senderId) !== userId) {
+            throw new UnauthorizedException('User not authorized to delete this message');
+        }
+
+        if (String(llmMessage.senderId) !== userId) {
+            throw new UnauthorizedException('User not authorized to delete this message');
+        }
+        (this.gateway.server as any).to(userMessage.sessionId).emit('message-deleted', {data: userMessage});
+        return userMessage;
     }
 }
