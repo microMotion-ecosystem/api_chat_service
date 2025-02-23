@@ -191,7 +191,7 @@ export class SessionService {
         const code = await this.mailService.resetCode()
         const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
         console.log(`user id type= ${userResult.user._id}`)
-        const joinedUser = await this.checkUserService.saveUserHashedCode(userResult.user._id, hashedCode)
+        const joinedUser = await this.checkUserService.saveUserHashedCode(userResult.user._id, hashedCode, sessionId)
         console.log('joinedUser', joinedUser);
         if(!joinedUser.success){
             throw new BadRequestException('Failed to save code');
@@ -207,28 +207,26 @@ export class SessionService {
           } catch (e) {
             throw new BadRequestException('Failed to send code');
           }
-        //   (this.gateway.server as any).to(sessionId).emit('participant-added', {data: user]Result});
-          return { message: 'code sent successfully' };
-        //   return { message: 'code sent successfully' };
-        // // // const participantObject = new Types.ObjectId(userResult.user._id);
-        // // if (session.participants.includes(participantObject)) {
-        // //     throw new Error('this participant was added before')
-        // // }
-        // // session.participants.push(participantObject);
-        // await session.save();
+          return 'code sent successfully';
     }
 
-    async acceptJoinSessionInvitation(code: string, sessionId:string) {
-        const session = await this.sessionModel.findById(sessionId);
-        if(!session){
-            throw new NotFoundException('session not found')
-        }
+    async acceptJoinSessionInvitation(code: string) {
         const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
         const userResult = await this.checkUserService.getUserByCode(hashedCode);
         if(!userResult.success ) {
-            throw new NotFoundException(`User not found or code is expired`)
+            throw new NotFoundException(`Wrong or expired code`)
         }
-        const participantObject = new Types.ObjectId(userResult.user._id)
+        const participantObject = new Types.ObjectId(userResult.user._id);
+        const sessionId = userResult.user.metadata.sessionId;
+        const session = await this.sessionModel.findById(sessionId);
+        if(!session) {
+            throw new NotFoundException('session not found')
+        }
+        session.participants.forEach((p)=>{
+            if(p.toString() === userResult.user._id){
+                throw new Error('this participant is already a member of this session')
+            }
+        })
         session.participants.push(participantObject);
         (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult.user});
         return await session.save();
@@ -239,14 +237,16 @@ export class SessionService {
         if (!session) {
             throw new Error('Session not found');
         }
-        if (session.createdBy.toString() !== userId) {
-            throw new UnauthorizedException('user not authorized')
-        }
         // validate email
         console.log('email', email);
         const userResult = await this.checkUserService.checkEmail(email);
         if (!userResult.success) {
             throw new NotFoundException('Participant User not found');
+        }
+        // only session admin and joined user can leave the session
+        console.log(`session creator =>${session.createdBy.toString()}\n user id => ${userId} \n email id => ${userResult.user._id}`)
+        if (session.createdBy.toString() !== userId && userResult.user._id !== userId) {
+            throw new UnauthorizedException('You are not authorized to remove this participant')
         }
         const participantObject = new Types.ObjectId(userResult.user._id);
         if (!session.participants.includes(participantObject)) {

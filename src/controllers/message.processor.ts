@@ -16,11 +16,11 @@ export class MessageProcessor {
     @Process()
     async handleEvent(job: Job): Promise<void> {
         console.log('Processing job', job.id);
-        const {sessionId, llmType, stream, messageId, senderId} = job.data;
-        const sessionMessages = await this.messageService.findSessionMessages(sessionId);
+        const {sessionId, llmType, stream, messageId, senderId, msgType} = job.data;
+        const LLm = msgType === 'image' ? 'gpt-4o' : llmType;
+        const sessionMessages = await this.messageService.findSessionMessages(sessionId, msgType, LLm, stream);
         const formatedMessages = await this.messageService.formatSessionMessages(sessionMessages);
-        console.log('formatedMessages', formatedMessages);
-        const llmResponse = await this.chatService.sendMessageToLLm(llmType, formatedMessages, sessionId, stream);
+        const llmResponse = await this.chatService.sendMessageToLLm(LLm, formatedMessages, sessionId, stream);
         const llmMessage = await this.messageService.createLLmMessage(
             llmType,
             sessionId,

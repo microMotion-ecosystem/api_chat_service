@@ -269,7 +269,7 @@ describe('SessionService', () => {
       jest.spyOn(checkUserService, 'checkEmail').mockResolvedValue(mockUserResult);
 
       const result = await service.addParticipantWithEmail('session-123', '507f1f77bcf86cd799439011', 'test@example.com');
-      expect(result.participants).toContainEqual(new Types.ObjectId('507f1f77bcf86cd799439013'));
+      expect(result).toEqual('code sent successfully')
     });
 
     it('should throw UnauthorizedException if user is not creator', async () => {

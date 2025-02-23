@@ -25,7 +25,7 @@ export class ChatController {
         try{
             console.log('llmType', llmType);
             console.log('message', body.message);
-            const response = await this.chatService.sendMessageToLLm(llmType, body.message);
+            const response = await this.chatService.callLLM(llmType, body.message);
             return ResponseDto.ok(response);
         } catch (err) {
             return ResponseDto.throwBadRequest(err.message, err);

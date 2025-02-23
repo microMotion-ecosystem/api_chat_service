@@ -174,7 +174,7 @@ describe('MessageService', () => {
       jest.spyOn(messageModel, 'create').mockResolvedValue(mockMessage as any);
       jest.spyOn(bullService, 'addMessageToQueue').mockResolvedValue('job-123');
 
-      const result = await service.createMessage(mockCreateMessageDto, mockUser);
+      const result = await service.sendTextMessage(mockCreateMessageDto, mockUser);
       expect(result).toEqual(mockMessage);
       expect(bullService.addMessageToQueue).toHaveBeenCalled();
     });
@@ -183,7 +183,7 @@ describe('MessageService', () => {
       jest.spyOn(sessionModel, 'findById').mockResolvedValue(null);
 
       await expect(
-        service.createMessage(
+        service.sendTextMessage(
           { sessionId: 'session-123', body: 'Hello', enableLLM: true, llmType: 'gpt-3' },
           { userId: '507f1f77bcf86cd799439011' },
         ),

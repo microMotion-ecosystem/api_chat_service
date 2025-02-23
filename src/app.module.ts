@@ -32,6 +32,10 @@ import { BullModule } from '@nestjs/bull';
 import { BullSevice } from './services/bull.service';
 import { MessageProcessor } from './controllers/message.processor';
 import { MailerModule } from './nodemailer/nodemailer.module';
+import { ConfigService } from '@nestjs/config'
+import { UploadService } from './services/upload.service';
+import { TextExtractionService } from './services/textExtraction.service';
+
 @Module({
   imports: [MongodbModule,
     HttpModule,
@@ -71,6 +75,9 @@ import { MailerModule } from './nodemailer/nodemailer.module';
     GateWay,
     BullSevice,
     MessageProcessor,
+    UploadService,
+    ConfigService,
+    TextExtractionService,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,

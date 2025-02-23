@@ -27,6 +27,17 @@ export class ChatService {
             throw new InternalServerErrorException('Failed to send message to LLM');
         }
     }
+    async callLLM(llmType: string, message: string) {
+            const body = {message, llmType}
+            const response = await this.llmService.callLLM(body);
+            if (response.success == true ) {
+                return response.data;
+            }
+            throw new Error('Failed to send message to LLM');
+
+    }
+
+    
 
     /**
      * Returns a string indicating the status of the application.

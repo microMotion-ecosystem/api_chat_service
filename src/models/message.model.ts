@@ -35,6 +35,13 @@ export class Message{
     })
     llmType:MODEL;
 
+    @Prop({
+        type: String,
+        enum: Object.values(MSG_TYPE),
+        default: MSG_TYPE.TEXT,
+    })
+    msgType:MSG_TYPE;
+
     @Prop({ type: Boolean, default: true })
     enableLLM: boolean;
 
