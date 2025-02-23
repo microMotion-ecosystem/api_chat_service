@@ -285,31 +285,23 @@ export class SessionController {
         description: 'code that sent to email',
         type: String
     })
-    @ApiQuery({
-        name: 'sessionId',
-        description: 'Session id to join after accept invitation',
-        required: false,
-        type: QueryAcceptInvitationDto,
-    })
     @ApiResponse({
         status: 200,
         description: 'successfully joined user to the session'
     })
     async acceptInvitationCode(
         @Param('code') code:string, 
-        @Query() body: QueryAcceptInvitationDto
     ) 
         {
             try{
-                // const userId = req.user.userId;
-                const response = await this.sessionService.acceptJoinSessionInvitation(code, body.sessionId)
+                const response = await this.sessionService.acceptJoinSessionInvitation(code)
                 return  ResponseDto.ok(response);
             }catch(err){
                 return ResponseDto.throwBadRequest(err.message, err);
             }
     }
     
-    @Delete('removeParticipant/:sessionId')
+    @Patch('removeParticipant/:sessionId')
     @UseGuards(JwtAuthGuard)
     @ApiOperation({summary: 'Remove participant from the session'})
     @ApiBearerAuth('access-token')

@@ -23,9 +23,9 @@ export class CheckUserService{
         }
     }
 
-    async saveUserHashedCode(id: string, code:string) {
+    async saveUserHashedCode(id: string, code:string, sessionId) {
         try{
-            return await this.checkUserQueue.send('save_hashed_code', {id, code}).toPromise();
+            return await this.checkUserQueue.send('save_hashed_code', {id, code, sessionId}).toPromise();
         }catch(e){
             throw(e)
         }

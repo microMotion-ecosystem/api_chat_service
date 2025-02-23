@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Put, Query, Req, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import {ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse} from "@nestjs/swagger";
 import {JwtAuthGuard} from "../core/jwt-auth-guard/jwt-auth.guard";
 import { ResponseDto } from '../dtos/response.dto';
@@ -8,6 +8,9 @@ import { MessageService } from 'src/services/message.service';
 import { CreateMessageDto } from 'src/dtos/create-message.dto';
 import { UpdateMessageBodyDto } from 'src/dtos/update-message.dto';
 import { AskLLMDto } from 'src/dtos/ask-llm.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { use } from 'passport';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('message')
 export class MessageController {
@@ -96,13 +99,75 @@ export class MessageController {
     async createMesssage(@Body() body:CreateMessageDto, @Request() req: any) {
         try {
             const user = req.user;
-            const response = await this.messageService.createMessage(body, user);
+            const response = await this.messageService.sendTextMessage(body, user);
             console.log('response', response);
             return ResponseDto.ok(response);
         } catch (err) {
             console.log('err', err);
             return ResponseDto.throwBadRequest(err.message, err);
         }
+    }
+
+    ///////// create another type of messages
+    @Post('upload-audio/:llm_type')
+    @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor('audio'))
+    async uploadAudio(
+        @Param() llm_type: QueryModelDto, 
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: any,
+        @Request() req: any
+    ) {
+        try {            
+            const response = await this.messageService.sendAudioMessage(file, llm_type.llm_type, body, req.user);
+            return ResponseDto.ok(response);
+        } catch (err) {
+            console.log('err', err);
+            return ResponseDto.throwBadRequest(err.message, err);
+        }
+    }
+
+    @Post('upload-image/:llm_type')
+    @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor('image'))
+    async uploadImage(
+        @Param() llm_type: QueryModelDto, 
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: any,
+        @Request() req:any
+    ) {
+        try {
+          if (!file.mimetype.startsWith('image/')) {
+            throw new BadRequestException('Invalid file type');
+          }
+            const response = await this.messageService.sendImageMessage(file, llm_type.llm_type, body, req.user);
+            return ResponseDto.ok(response);
+        } catch (err) {
+            console.log('err', err);
+            return ResponseDto.throwBadRequest(err.message, err);
+        }
+    }
+
+    @Post('upload-pdf/:llm_type')
+    @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor('pdf')) // Changed from 'image' to 'pdf'
+    async uploadPdf(
+      @Param('llm_type') llmType: string, 
+      @UploadedFile() file: Express.Multer.File,
+      @Body() body: any,
+      @Request() req: any
+    ) {
+      try {
+        // Validate PDF MIME type
+        if (!file.mimetype.includes('pdf')) {
+          throw new BadRequestException('Invalid file type - PDF required');
+        }
+    
+        const response = await this.messageService.sendPdfMessage(file, llmType, body, req.user);
+        return ResponseDto.ok(response);
+      } catch (err) {
+        return ResponseDto.throwBadRequest(err.message, err);
+      }
     }
 
     @Put(':id')

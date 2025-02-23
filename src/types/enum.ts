@@ -17,3 +17,10 @@ export enum MSG_STATUS {
     DELIVERED = 'delivered',
     READ = 'read',
 }
+
+export enum MSG_TYPE {
+    TEXT = 'text',
+    AUDIO = 'audio',
+    IMAGE = 'image',
+    PDF = 'pdf'
+}

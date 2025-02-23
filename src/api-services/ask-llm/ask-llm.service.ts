@@ -16,4 +16,11 @@ export class AskLLmService {
             throw(e);
         }
     }
+    async callLLM(data: any) {
+        try{
+            return await this.llmQueue.send('send-prompt', data).toPromise();
+        }catch(e){
+            throw(e);
+        }
+    }
 }
