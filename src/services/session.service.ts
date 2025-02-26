@@ -228,7 +228,7 @@ export class SessionService {
             }
         })
         session.participants.push(participantObject);
-        (this.gateway.server as any).to(sessionId).emit('participant-added', {data: userResult.user});
+        this.gateway.emitEvent('participant-added', {body: userResult.user, sessionId: sessionId});
         return await session.save();
     }
 
@@ -254,7 +254,7 @@ export class SessionService {
         }
         session.participants = session.participants.filter(p => p.toString() !== userResult.user._id);
         await session.save();
-        (this.gateway.server as any).to(sessionId).emit('participant-removed', {data: userResult});
+        this.gateway.emitEvent('participant-removed', {body: userResult, sessionId: sessionId});
         return session;
     }
     async rename(sessionId: string, userId: string, body: UpdateSessionRenameDto) {
@@ -267,7 +267,7 @@ export class SessionService {
         }
         session.title = body.title;
         await session.save();
-        (this.gateway.server as any).to(sessionId).emit('session-renamed', {data: session});
+        this.gateway.emitEvent('session-renamed', {body: session, sessionId: sessionId});
         return session;
     }
 
@@ -285,7 +285,8 @@ export class SessionService {
         }
         session.enableLLM = true;
         await session.save();
-        (this.gateway.server as any).to(sessionId).emit('llm-enabled', {data: session});
+        this.gateway.emitEvent('llm-enabled', {body: session, sessionId: sessionId});
+        console.log('emited event recieve message');
         return session;
     }
     async disableLLM(sessionId: string, userId: string) {
@@ -302,7 +303,7 @@ export class SessionService {
         }
         session.enableLLM = false;
         await session.save();
-        (this.gateway.server as any).to(sessionId).emit('llm-disabled', {data: session});
+        this.gateway.emitEvent('llm-disabled', {body: session, sessionId: sessionId});
         return session;
     }
 
@@ -318,7 +319,7 @@ export class SessionService {
         // validate user lates
         session.isDelete = true;
         await session.save();
-        (this.gateway.server as any).to(sessionId).emit('session-deleted', {data: session});
+        this.gateway.emitEvent('session-deleted', {body: session, sessionId: sessionId});
         return session;
     }
 }

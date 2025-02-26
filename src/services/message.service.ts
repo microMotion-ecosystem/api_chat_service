@@ -128,7 +128,8 @@ export class MessageService {
         const message = await this.messageModel.create(data);
         console.log('message', message);
 
-        (this.gateway.server as any).to(data.sessionId).emit('user-message-created', {data: message});
+        this.gateway.emitEvent('user-message-created', {body: message, sessionId: data.sessionId});
+
         if(session.enableLLM) {
             await this.bullService.addMessageToQueue({
                 sessionId: data.sessionId,
@@ -171,7 +172,7 @@ export class MessageService {
         }
         const message = await this.messageModel.create(data);
 
-        (this.gateway.server as any).to(data.sessionId).emit('user-message-created', {data: message});
+        this.gateway.emitEvent('user-message-created', {body: message, sessionId: data.sessionId});
         if(session.enableLLM) {
             await this.bullService.addMessageToQueue({
                 sessionId: data.sessionId,
@@ -216,7 +217,7 @@ export class MessageService {
         const message = await this.messageModel.create(data);
         console.log('message', message);
 
-        (this.gateway.server as any).to(data.sessionId).emit('user-message-created', {data: message});
+        this.gateway.emitEvent('user-message-created', {body: message, sessionId: data.sessionId});
         if(session.enableLLM) {
             await this.bullService.addMessageToQueue({
                 sessionId: data.sessionId,
@@ -255,10 +256,8 @@ export class MessageService {
         const message = await this.messageModel.create(data);
         console.log('message', message);
 
-        (this.gateway.server as any).to(data.sessionId).emit('user-message-created', {data: message});
-        // session.messages.push(message.id);
-        // await session.save();
-        // const stream = message?.metadata?.stream === true ? true : false;
+        this.gateway.emitEvent('user-message-created', {body: message, sessionId: data.sessionId});
+        
         console.log(`stream is ${stream}`)
         console.log(`session llm enabling status: ${session.enableLLM}`)
         if(session.enableLLM) {
@@ -375,7 +374,7 @@ export class MessageService {
             llmMessages.push({role:'user', content:renameContent})
             let chatTitleResponse
             chatTitleResponse = await this.chatService.sendMessageToLLm(llmType, llmMessages, sessionId, stream);
-            (this.gateway.server as any).to(sessionId).emit('recommended-session-title', {data: chatTitleResponse.chatResponse});
+            this.gateway.emitEvent('user-message-created', {body: chatTitleResponse, sessionId: sessionId});
             console.log(chatTitleResponse.chatResponse);
             session.renamed = true;
             await session.save();
@@ -393,7 +392,7 @@ export class MessageService {
         if (!message) {
             throw new NotFoundException('Message not found');
         }
-        (this.gateway.server as any).to(message.sessionId).emit('message-updated', {data: message});
+        this.gateway.emitEvent('message-updated', {body: message, sessionId: message.sessionId});
         return message;
     }
 
@@ -415,7 +414,7 @@ export class MessageService {
         if (String(llmMessage.senderId) !== userId) {
             throw new UnauthorizedException('User not authorized to delete this message');
         }
-        (this.gateway.server as any).to(userMessage.sessionId).emit('message-deleted', {data: userMessage});
+        this.gateway.emitEvent('message-deleted', {body: userMessage, sessionId: userMessage.sessionId});
         return userMessage;
     }
 }

@@ -30,7 +30,8 @@ export class MessageProcessor {
         );
         console.log('llmMessaege', llmMessage);
         if (!stream){
-            (this.gateway.server as any).to(sessionId).emit('chat-message-created', {data: llmMessage});
+            // (this.gateway.server as any).to(sessionId).emit('chat-message-created', {data: llmMessage});
+            this.gateway.emitEvent('chat-message-created', {body: llmMessage, sessionId: sessionId});
         }
 
         await this.messageService.handleRenameSession(sessionId, llmType, formatedMessages, stream);
