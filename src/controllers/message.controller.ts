@@ -11,6 +11,7 @@ import { AskLLMDto } from 'src/dtos/ask-llm.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { use } from 'passport';
 import { AuthGuard } from '@nestjs/passport';
+import { UploadFileMessageDto } from 'src/dtos/sendFileToLLm.dto';
 
 @Controller('message')
 export class MessageController {
@@ -109,17 +110,25 @@ export class MessageController {
     }
 
     ///////// create another type of messages
-    @Post('upload-audio/:llm_type')
+    @ApiOperation({summary: 'send audio message'})
+    @ApiBody({
+        type: CreateMessageDto,
+    })
+    @ApiBearerAuth('access-token')
+    @ApiResponse({
+        status: 200,
+        description: 'successfully send audio message to llm and get response'
+    })
+    @Post('upload-audio')
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(FileInterceptor('audio'))
     async uploadAudio(
-        @Param() llm_type: QueryModelDto, 
         @UploadedFile() file: Express.Multer.File,
-        @Body() body: any,
+        @Body() body: UploadFileMessageDto,
         @Request() req: any
     ) {
         try {            
-            const response = await this.messageService.sendAudioMessage(file, llm_type.llm_type, body, req.user);
+            const response = await this.messageService.sendAudioMessage(file, body, req.user);
             return ResponseDto.ok(response);
         } catch (err) {
             console.log('err', err);
@@ -127,20 +136,19 @@ export class MessageController {
         }
     }
 
-    @Post('upload-image/:llm_type')
+    @Post('upload-image')
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(FileInterceptor('image'))
     async uploadImage(
-        @Param() llm_type: QueryModelDto, 
         @UploadedFile() file: Express.Multer.File,
-        @Body() body: any,
+        @Body() body: UploadFileMessageDto,
         @Request() req:any
     ) {
         try {
           if (!file.mimetype.startsWith('image/')) {
             throw new BadRequestException('Invalid file type');
           }
-            const response = await this.messageService.sendImageMessage(file, llm_type.llm_type, body, req.user);
+            const response = await this.messageService.sendImageMessage(file, body, req.user);
             return ResponseDto.ok(response);
         } catch (err) {
             console.log('err', err);
@@ -148,13 +156,12 @@ export class MessageController {
         }
     }
 
-    @Post('upload-pdf/:llm_type')
+    @Post('upload-pdf')
     @UseGuards(JwtAuthGuard)
     @UseInterceptors(FileInterceptor('pdf')) // Changed from 'image' to 'pdf'
     async uploadPdf(
-      @Param('llm_type') llmType: string, 
       @UploadedFile() file: Express.Multer.File,
-      @Body() body: any,
+      @Body() body: UploadFileMessageDto,
       @Request() req: any
     ) {
       try {
@@ -163,7 +170,7 @@ export class MessageController {
           throw new BadRequestException('Invalid file type - PDF required');
         }
     
-        const response = await this.messageService.sendPdfMessage(file, llmType, body, req.user);
+        const response = await this.messageService.sendPdfMessage(file, body, req.user);
         return ResponseDto.ok(response);
       } catch (err) {
         return ResponseDto.throwBadRequest(err.message, err);

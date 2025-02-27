@@ -35,6 +35,7 @@ import { MailerModule } from './nodemailer/nodemailer.module';
 import { ConfigService } from '@nestjs/config'
 import { UploadService } from './services/upload.service';
 import { TextExtractionService } from './services/textExtraction.service';
+import { SkipJsonParsingMiddleware } from './core/middleware/skipJsonParsing';
 
 @Module({
   imports: [MongodbModule,
@@ -88,6 +89,20 @@ import { TextExtractionService } from './services/textExtraction.service';
     },
   ],
 })
+
+// export class AppModule implements NestModule {
+//   configure(consumer: MiddlewareConsumer) {
+//     // Apply the SkipJsonParsingMiddleware globally
+//     consumer
+//       .apply(SkipJsonParsingMiddleware)
+//       .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+//     // Apply other middlewares
+//     consumer
+//       .apply(CheckHeaderMiddleware, RequestsLoggerMiddleware)
+//       .forRoutes({ path: '*', method: RequestMethod.ALL });
+//   }
+// }
 export class AppModule implements NestModule {
   // MiddlewareConsumer is used to configure the middleware vvv
   configure(consumer: MiddlewareConsumer) {

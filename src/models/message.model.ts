@@ -31,7 +31,7 @@ export class Message{
     @Prop({
         type: String,
         enum: Object.values(MODEL),
-        default: MODEL.DEEPSEEK,
+        default: MODEL.OPENAI,
     })
     llmType:MODEL;
 
