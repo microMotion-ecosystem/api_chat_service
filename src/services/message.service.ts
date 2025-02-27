@@ -23,6 +23,7 @@ import { MODEL, MSG_TYPE } from 'src/types/enum';
 import { text } from 'stream/consumers';
 import { LLMMessage } from 'src/types/interface';
 import e from 'express';
+import { UploadFileMessageDto } from 'src/dtos/sendFileToLLm.dto';
 
 
 
@@ -96,8 +97,7 @@ export class MessageService {
     // create another types of messages
 
     async sendAudioMessage(file,
-         llm_type, 
-         body: any,
+         body: UploadFileMessageDto,
          user: any,
         ) {
         const session = await this.sessionModel.findById(body.sessionId);
@@ -112,7 +112,7 @@ export class MessageService {
             senderId: user.userId,
             msgType: MSG_TYPE.AUDIO,
             body: 'this is audio message',
-            llmType: llm_type,
+            llmType: body.llmType,
             enableLLM: session.enableLLM,
             metadata: {
                 senderName: user.username,
@@ -142,7 +142,7 @@ export class MessageService {
         }
         return message;
     }
-    async sendImageMessage(file: Express.Multer.File, llm_type, body:any, user:any) {
+    async sendImageMessage(file: Express.Multer.File, body:UploadFileMessageDto, user:any) {
         const session = await this.sessionModel.findById(body.sessionId);
         if(!session) {
             throw new NotFoundException(`session not found`)
@@ -158,7 +158,7 @@ export class MessageService {
             senderId: user.userId,
             msgType: MSG_TYPE.IMAGE,
             body: 'this is image message',
-            llmType: llm_type,
+            llmType: body.llmType,
             enableLLM: session.enableLLM,
             metadata: {
                 senderName: user.username,
@@ -187,7 +187,7 @@ export class MessageService {
 
     }
   
-    async sendPdfMessage(file: Express.Multer.File, llm_type: string, body: any, user:any) {
+    async sendPdfMessage(file: Express.Multer.File, body: UploadFileMessageDto, user:any) {
         const session = await this.sessionModel.findById(body.sessionId);
         console.log(user);
         if(!session) {
@@ -201,7 +201,7 @@ export class MessageService {
             senderId: user.userId,
             msgType: MSG_TYPE.PDF,
             body: 'this is pdf message',
-            llmType: llm_type,
+            llmType: body.llmType,
             enableLLM: session.enableLLM,
             metadata: {
                 senderName: user.username,
@@ -374,7 +374,7 @@ export class MessageService {
             llmMessages.push({role:'user', content:renameContent})
             let chatTitleResponse
             chatTitleResponse = await this.chatService.sendMessageToLLm(llmType, llmMessages, sessionId, stream);
-            this.gateway.emitEvent('user-message-created', {body: chatTitleResponse, sessionId: sessionId});
+            this.gateway.emitEvent('recommended-session-title', {body: chatTitleResponse, sessionId: sessionId});
             console.log(chatTitleResponse.chatResponse);
             session.renamed = true;
             await session.save();
